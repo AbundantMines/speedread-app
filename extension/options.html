@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SpeedRead Settings</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#f0e8d8;font-family:system-ui,sans-serif;padding:40px;max-width:480px;margin:0 auto}
+h1{font-size:24px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+h1 span{color:#c9a84c}
+.subtitle{color:#8a8070;margin-bottom:32px}
+.field{margin-bottom:24px}
+.field label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#8a8070;margin-bottom:8px}
+input[type=number],select{background:#111;border:1px solid #222;border-radius:8px;color:#f0e8d8;padding:10px 14px;font-size:16px;width:100%;outline:none}
+input:focus,select:focus{border-color:#c9a84c}
+.btn{padding:12px 24px;border-radius:8px;border:1px solid #c9a84c;background:#c9a84c;color:#000;font-weight:700;cursor:pointer;font-size:14px}
+.btn:hover{background:#d4ad55}
+.saved{color:#22c55e;font-size:13px;margin-left:12px;opacity:0;transition:opacity .3s}
+.saved.show{opacity:1}
+</style>
+</head>
+<body>
+<h1>⚡ <span>Speed</span>Read Settings</h1>
+<p class="subtitle">Configure your default reading preferences</p>
+
+<div class="field">
+  <label>Default WPM</label>
+  <input type="number" id="default-wpm" min="100" max="1500" step="25" value="300">
+</div>
+
+<div class="field">
+  <label>Theme</label>
+  <select id="theme-select">
+    <option value="dark">Dark</option>
+    <option value="light">Light</option>
+  </select>
+</div>
+
+<button class="btn" onclick="saveSettings()">Save Settings</button>
+<span class="saved" id="saved-msg">✓ Saved!</span>
+
+<script>
+chrome.storage.sync.get(['defaultWPM', 'theme'], (r) => {
+  if (r.defaultWPM) document.getElementById('default-wpm').value = r.defaultWPM;
+  if (r.theme) document.getElementById('theme-select').value = r.theme;
+});
+
+function saveSettings() {
+  const wpm = parseInt(document.getElementById('default-wpm').value) || 300;
+  const theme = document.getElementById('theme-select').value;
+  chrome.storage.sync.set({ defaultWPM: wpm, theme }, () => {
+    const msg = document.getElementById('saved-msg');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 2000);
+  });
+}
+</script>
+</body>
+</html>

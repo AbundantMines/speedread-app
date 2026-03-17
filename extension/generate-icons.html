@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html><head><title>Icon Generator</title></head>
+<body>
+<canvas id="c16" width="16" height="16"></canvas>
+<canvas id="c48" width="48" height="48"></canvas>
+<canvas id="c128" width="128" height="128"></canvas>
+<script>
+[16,48,128].forEach(size => {
+  const c = document.getElementById('c'+size);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#c9a84c';
+  ctx.beginPath();
+  ctx.arc(size/2, size/2, size/2, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  const s = size/16;
+  ctx.moveTo(9*s, 1*s); ctx.lineTo(5*s, 8.5*s); ctx.lineTo(8*s, 8.5*s);
+  ctx.lineTo(7*s, 15*s); ctx.lineTo(11*s, 7*s); ctx.lineTo(8*s, 7*s);
+  ctx.closePath();
+  ctx.fill();
+  const link = document.createElement('a');
+  link.download = 'icon'+size+'.png';
+  link.href = c.toDataURL('image/png');
+  link.textContent = 'Download icon'+size+'.png';
+  document.body.appendChild(link);
+  document.body.appendChild(document.createElement('br'));
+});
+</script>
+</body></html>

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SpeedRead">
+<meta name="theme-color" content="#0a0a0a">
+<title>SpeedRead — Reader</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>if(typeof pdfjsLib!=='undefined')pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<!-- Supabase JS — uncomment when configured -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> -->
+<!-- Stripe JS — uncomment when configured -->
+<!-- <script src="https://js.stripe.com/v3/"></script> -->
+<style>
+body { display: flex; min-height: 100vh; overflow-x: hidden; }
+
+/* ─── SIDEBAR ─── */
+.sidebar {
+  width: 280px; min-height: 100vh; background: var(--bg-card); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto;
+}
+.sidebar-header { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.sidebar-logo { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.sidebar-logo span { color: var(--accent); }
+
+.sidebar-section { padding: 16px 20px; }
+.sidebar-section-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text-muted); margin-bottom: 10px;
+}
+.history-item {
+  padding: 10px 12px; border-radius: var(--radius); cursor: pointer;
+  margin-bottom: 4px; transition: background 0.15s;
+}
+.history-item:hover { background: var(--bg-elevated); }
+.history-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+.sidebar-chart { padding: 0 20px 20px; }
+
+/* ─── ACCOUNT ─── */
+.sidebar-account {
+  margin-top: auto; padding: 16px 20px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.account-avatar {
+  width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; color: #000; font-size: 14px;
+}
+.account-info { flex: 1; min-width: 0; }
+.account-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-plan {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 2px 8px; border-radius: 10px; display: inline-block; margin-top: 2px;
+}
+.plan-free { background: var(--bg-elevated); color: var(--text-muted); }
+.plan-pro { background: rgba(201,168,76,0.2); color: var(--accent); }
+.account-logout { color: var(--text-muted); cursor: pointer; font-size: 18px; padding: 4px; }
+.account-logout:hover { color: var(--red); }
+
+/* ─── MAIN CONTENT ─── */
+.main-content {
+  flex: 1; display: flex; flex-direction: column; min-height: 100vh; overflow-y: auto;
+}
+
+/* ─── TOP BAR ─── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 24px; border-bottom: 1px solid var(--border); flex-shrink: 0; gap: 12px;
+}
+.topbar-title {
+  font-size: 14px; color: var(--text-muted); display: flex; align-items: center; gap: 8px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.topbar-title strong { color: var(--text); font-weight: 500; }
+.topbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+.font-size-control { display: flex; align-items: center; gap: 4px; }
+.font-size-control button { width: 28px; height: 28px; font-size: 14px; padding: 0; }
+
+/* ─── READER AREA ─── */
+.reader-area {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 32px 20px;
+}
+
+/* ─── UPLOAD ZONE ─── */
+#upload-zone { width: 100%; max-width: 620px; display: flex; flex-direction: column; gap: 20px; }
+.drop-zone {
+  border: 2px dashed var(--border); border-radius: 16px; background: var(--bg-card);
+  padding: 56px 32px; text-align: center; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s; position: relative;
+}
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: #161510; }
+.drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.drop-icon { font-size: 40px; margin-bottom: 14px; }
+.drop-title { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+.drop-sub { color: var(--text-muted); font-size: 13px; }
+
+.input-row { display: flex; gap: 8px; }
+.input-row input { flex: 1; }
+
+/* ─── READER ZONE ─── */
+#reader-zone { width: 100%; max-width: 680px; display: none; flex-direction: column; align-items: center; }
+#reader-zone.active { display: flex; }
+
+/* ─── STATUS BAR ─── */
+#status-bar {
+  width: 100%; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 18px; font-size: 13px; color: var(--text-muted);
+  margin-bottom: 16px; display: none; align-items: center; gap: 10px;
+}
+#status-bar.visible { display: flex; }
+
+/* ─── RSVP WINDOW ─── */
+.rsvp-window {
+  position: relative; width: 600px; max-width: 90vw; height: 100px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-card); border-radius: var(--radius-lg);
+  border: 1px solid var(--border); overflow: hidden; margin-bottom: 0;
+}
+.rsvp-window::before {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px;
+  background: rgba(230,57,70,0.15); pointer-events: none; transform: translateX(-50%);
+}
+.rsvp-window::after {
+  content: ''; position: absolute; left: calc(50% - 1px); top: 0;
+  width: 2px; height: 8px; background: var(--red);
+}
+.rsvp-bottom-accent {
+  position: absolute; left: calc(50% - 1px); bottom: 0;
+  width: 2px; height: 8px; background: var(--red); pointer-events: none;
+}
+.word-row {
+  display: flex; align-items: baseline; font-family: Georgia, serif;
+  line-height: 1; white-space: nowrap; position: relative; z-index: 1;
+}
+.word-before { color: #666; min-width: 220px; text-align: right; display: inline-block; }
+.word-orp { color: var(--red); font-weight: 700; width: 1ch; text-align: center; display: inline-block; }
+.word-after { color: var(--text); min-width: 220px; text-align: left; display: inline-block; }
+.rsvp-idle { color: var(--text-muted); font-size: 16px; font-family: system-ui, sans-serif; letter-spacing: 0.5px; }
+
+/* ─── CONTEXT STRIP ─── */
+#context-strip {
+  width: 600px; max-width: 90vw; min-height: 44px;
+  background: var(--bg-elevated); border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 10px 10px; padding: 8px 16px; font-size: 14px;
+  color: var(--text-muted); line-height: 1.5; display: none; margin-bottom: 20px;
+}
+#context-strip.visible { display: block; }
+#context-strip mark { background: rgba(201,168,76,0.25); color: var(--accent); border-radius: 2px; padding: 0 2px; }
+
+.rsvp-gap { height: 20px; }
+
+/* ─── PROGRESS ─── */
+.progress-section { width: 600px; max-width: 90vw; margin-bottom: 18px; }
+.progress-bar-wrap { width: 100%; height: 4px; background: var(--bg-elevated); border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
+.progress-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.2s linear; width: 0%; }
+.progress-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); }
+.progress-pct { color: var(--accent); font-weight: 600; }
+
+/* ─── CONTROLS ─── */
+.controls-section { width: 600px; max-width: 90vw; display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+.nav-row { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.play-btn { min-width: 140px; font-size: 17px; padding: 13px 28px; }
+.btn-jump { min-width: 44px; font-size: 16px; }
+
+/* ─── WPM ─── */
+.wpm-section {
+  width: 600px; max-width: 90vw; background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 14px;
+}
+.wpm-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); }
+.wpm-display { font-size: 22px; font-weight: 700; color: var(--accent); }
+.wpm-presets { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.btn-preset { min-width: 52px; font-size: 13px; padding: 7px 10px; }
+.slider-wrap { display: flex; align-items: center; gap: 10px; }
+.slider-wrap input[type="range"] { flex: 1; }
+.slider-label { font-size: 12px; color: var(--text-muted); min-width: 36px; text-align: center; }
+
+/* ─── FOOTER ROW ─── */
+.footer-row { width: 600px; max-width: 90vw; display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ─── UPGRADE MODAL ─── */
+.upgrade-modal-content { text-align: center; }
+.upgrade-modal-content h2 { font-size: 24px; margin-bottom: 8px; }
+.upgrade-modal-content p { color: var(--text-muted); margin-bottom: 24px; }
+.upgrade-plans { display: flex; flex-direction: column; gap: 12px; }
+.upgrade-plan {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px; border: 1px solid var(--border); border-radius: var(--radius);
+  cursor: pointer; transition: border-color 0.15s;
+}
+.upgrade-plan:hover { border-color: var(--accent); }
+.upgrade-plan-name { font-weight: 600; }
+.upgrade-plan-price { color: var(--accent); font-weight: 700; }
+
+/* ─── AUTH MODAL ─── */
+.auth-tabs { display: flex; gap: 0; margin-bottom: 20px; }
+.auth-tabs button {
+  flex: 1; padding: 10px; border: 1px solid var(--border); background: var(--bg);
+  color: var(--text-muted); cursor: pointer; font-size: 14px; font-weight: 500;
+}
+.auth-tabs button:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.auth-tabs button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+.auth-tabs button.active { background: var(--accent); border-color: var(--accent); color: #000; }
+.auth-form { display: flex; flex-direction: column; gap: 12px; }
+.auth-form input { width: 100%; }
+.auth-divider { text-align: center; color: var(--text-muted); font-size: 13px; padding: 8px 0; }
+.btn-google {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 12px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--btn-bg); color: var(--text); cursor: pointer; font-size: 14px; font-weight: 500;
+}
+.btn-google:hover { background: var(--btn-hover); }
+
+/* ─── COMPREHENSION PRO BADGE ─── */
+.pro-badge {
+  font-size: 10px; background: rgba(201,168,76,0.2); color: var(--accent);
+  padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+  font-weight: 700; margin-left: 6px;
+}
+
+/* ─── MOBILE ─── */
+.sidebar-toggle {
+  display: none; position: fixed; bottom: 20px; left: 20px; z-index: 200;
+  width: 44px; height: 44px; border-radius: 50%; font-size: 18px;
+  background: var(--accent); border: none; color: #000; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed; left: -280px; top: 0; z-index: 150; transition: left 0.3s;
+  }
+  .sidebar.open { left: 0; }
+  .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+  .word-row { font-size: 34px !important; }
+  .word-before, .word-after { min-width: 120px !important; }
+  .rsvp-window { height: 76px; }
+  .play-btn { min-width: 120px; font-size: 15px; padding: 14px 20px; min-height: 50px; }
+}
+@media (max-width: 390px) {
+  .word-row { font-size: 30px !important; }
+  .word-before, .word-after { min-width: 100px !important; }
+  .rsvp-window { height: 68px; }
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">⚡ <span>Speed</span>Read</div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Reading History</div>
+    <div id="history-list">
+      <div style="color:var(--text-muted);font-size:13px;padding:8px 0">No sessions yet</div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">WPM Progress</div>
+    <div class="sidebar-chart" id="wpm-chart"></div>
+  </div>
+
+  <div class="sidebar-account" id="account-section">
+    <div class="account-avatar" id="account-avatar">?</div>
+    <div class="account-info">
+      <div class="account-name" id="account-name">Not signed in</div>
+      <span class="account-plan plan-free" id="account-plan">FREE</span>
+    </div>
+    <span class="account-logout" id="account-logout" title="Sign out / Sign in" onclick="handleAccountClick()">⚙</span>
+  </div>
+</aside>
+
+<!-- SIDEBAR TOGGLE (mobile) -->
+<button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+  <div class="topbar" id="topbar">
+    <div class="topbar-title">📖 <strong id="book-title-text">Ready to read</strong></div>
+    <div class="topbar-actions">
+      <div class="font-size-control">
+        <button class="btn btn-sm" onclick="changeFontSize(-4)" title="Smaller">A-</button>
+        <button class="btn btn-sm" onclick="changeFontSize(4)" title="Larger">A+</button>
+      </div>
+      <button class="btn btn-sm" onclick="toggleTheme()" id="theme-btn" title="Toggle theme">🌙</button>
+      <button class="btn btn-sm" onclick="toggleComprehension()" title="Comprehension mode">🧠<span class="pro-badge">PRO</span></button>
+      <button class="btn btn-sm" onclick="openHelp()" title="Keyboard shortcuts">?</button>
+    </div>
+  </div>
+
+  <div class="reader-area">
+
+    <!-- UPLOAD ZONE -->
+    <div id="upload-zone">
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept=".pdf,.txt,.md,.epub" tabindex="-1">
+        <div class="drop-icon">📄</div>
+        <div class="drop-title">Drop PDF or TXT here</div>
+        <div class="drop-sub">or click to browse • supports PDF, TXT, MD</div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="btn" onclick="openPasteModal()">📋 Paste Text</button>
+        <button class="btn" onclick="openURLModal()">🔗 Import URL</button>
+      </div>
+    </div>
+
+    <!-- READER ZONE -->
+    <div id="reader-zone">
+      <div id="status-bar"><div class="spinner"></div><span id="status-text">Loading…</span></div>
+
+      <div class="rsvp-window" id="rsvp-window">
+        <div class="word-row" id="word-row" style="display:none">
+          <span class="word-before" id="word-before"></span>
+          <span class="word-orp" id="word-orp"></span>
+          <span class="word-after" id="word-after"></span>
+        </div>
+        <div class="rsvp-idle" id="rsvp-idle">Ready to read</div>
+        <div class="rsvp-bottom-accent"></div>
+      </div>
+
+      <div id="context-strip" aria-live="polite"></div>
+      <div class="rsvp-gap" id="rsvp-gap"></div>
+
+      <div class="progress-section">
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill"></div></div>
+        <div class="progress-info">
+          <span id="progress-pos">Word 0 / 0</span>
+          <span class="progress-pct" id="progress-pct">0%</span>
+          <span id="progress-time">—</span>
+        </div>
+      </div>
+
+      <div class="controls-section">
+        <div class="nav-row">
+          <button class="btn btn-jump" onclick="jumpWords(-100)" title="Back 100">◄◄</button>
+          <button class="btn btn-jump" onclick="jumpWords(-10)" title="Back 10">◄</button>
+          <button class="btn btn-primary play-btn" id="play-btn" onclick="togglePlay()">▶ Play</button>
+          <button class="btn btn-jump" onclick="jumpWords(10)" title="Fwd 10">►</button>
+          <button class="btn btn-jump" onclick="jumpWords(100)" title="Fwd 100">►►</button>
+          <button class="btn btn-sm" onclick="seekTo(0)" title="Restart">⟲</button>
+        </div>
+      </div>
+
+      <div class="wpm-section">
+        <div class="wpm-header">
+          <span>WPM</span>
+          <span class="wpm-display" id="wpm-display">300</span>
+        </div>
+        <div class="wpm-presets">
+          <button class="btn btn-preset" onclick="setWPM(150)">150</button>
+          <button class="btn btn-preset" onclick="setWPM(250)">250</button>
+          <button class="btn btn-preset" onclick="setWPM(350)">350</button>
+          <button class="btn btn-preset" onclick="setWPM(500)">500</button>
+          <button class="btn btn-preset" onclick="setWPM(700)">700</button>
+          <button class="btn btn-preset" onclick="setWPM(1000)">1000</button>
+          <button class="btn btn-preset" onclick="setWPM(1500)">1500</button>
+        </div>
+        <div class="slider-wrap">
+          <span class="slider-label">100</span>
+          <input type="range" id="wpm-slider" min="100" max="1500" step="10" value="300" oninput="onSlider(this.value)">
+          <span class="slider-label">1500</span>
+        </div>
+      </div>
+
+      <div class="footer-row">
+        <button class="btn" id="context-btn" onclick="toggleContext()">Context: OFF</button>
+        <button class="btn btn-danger" onclick="closeBook()">✕ Close</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PASTE MODAL -->
+<div class="modal-overlay hidden" id="paste-modal">
+  <div class="modal">
+    <h2>📋 Paste Text</h2>
+    <textarea id="paste-textarea" placeholder="Paste any text here — article, book chapter, email…" style="width:100%;height:260px;resize:vertical;line-height:1.6"></textarea>
+    <div class="modal-footer">
+      <button class="btn" onclick="closePasteModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="startFromPaste()">▶ Start Reading</button>
+    </div>
+  </div>
+</div>
+
+<!-- URL MODAL -->
+<div class="modal-overlay hidden" id="url-modal">
+  <div class="modal" style="max-width:440px">
+    <h2>🔗 Import from URL</h2>
+    <input type="text" id="url-input" placeholder="https://example.com/article" style="width:100%">
+    <p style="font-size:12px;color:var(--text-muted)">We'll extract the readable text from the page. Works best with articles and blog posts.</p>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeURLModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="importFromURL()">Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- HELP MODAL -->
+<div class="modal-overlay hidden" id="help-modal">
+  <div class="modal">
+    <h2>⌨️ Keyboard Shortcuts</h2>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px">
+      <kbd style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-family:monospace;font-size:12px;color:var(--accent)">Space</kbd><span style="color:var(--text-muted);display:flex;align-items:center">Play / Pause</span>
+      <kbd style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-family:monospace;font-size:12px;color:var(--accent)">←</kbd><span style="color:var(--text-muted);display:flex;align-items:center">Back 10 words</span>
+      <kbd style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-family:monospace;font-size:12px;color:var(--accent)">→</kbd><span style="color:var(--text-muted);display:flex;align-items:center">Forward 10 words</span>
+      <kbd style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-family:monospace;font-size:12px;color:var(--accent)">Shift+←/→</kbd><span style="color:var(--text-muted);display:flex;align-items:center">±100 words</span>
+      <kbd style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-family:monospace;font-size:12px;color:var(--accent)">Ctrl+←/→</kbd><span style="color:var(--text-muted);display:flex;align-items:center">±1000 words</span>
+      <kbd style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-family:monospace;font-size:12px;color:var(--accent)">C</kbd><span style="color:var(--text-muted);display:flex;align-items:center">Toggle context strip</span>
+      <kbd style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-family:monospace;font-size:12px;color:var(--accent)">,</kbd><span style="color:var(--text-muted);display:flex;align-items:center">Decrease WPM by 25</span>
+      <kbd style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-family:monospace;font-size:12px;color:var(--accent)">.</kbd><span style="color:var(--text-muted);display:flex;align-items:center">Increase WPM by 25</span>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="closeHelp()">Got it</button></div>
+  </div>
+</div>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay hidden" id="auth-modal">
+  <div class="modal" style="max-width:400px">
+    <h2 id="auth-modal-title">Sign In</h2>
+    <div class="auth-tabs">
+      <button class="active" onclick="switchAuthTab('login',this)">Sign In</button>
+      <button onclick="switchAuthTab('signup',this)">Sign Up</button>
+    </div>
+    <div class="auth-form" id="auth-form">
+      <input type="text" id="auth-name" placeholder="Display name" style="display:none">
+      <input type="email" id="auth-email" placeholder="Email address">
+      <input type="password" id="auth-password" placeholder="Password">
+      <button class="btn btn-primary" style="width:100%" onclick="handleAuth()">Sign In</button>
+    </div>
+    <div class="auth-divider">— or —</div>
+    <button class="btn-google" onclick="signInWithGoogle()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Continue with Google
+    </button>
+    <div class="modal-footer"><button class="btn" onclick="closeAuthModal()">Cancel</button></div>
+  </div>
+</div>
+
+<!-- UPGRADE MODAL -->
+<div class="modal-overlay hidden" id="upgrade-modal">
+  <div class="modal upgrade-modal-content">
+    <h2>⚡ Upgrade to Pro</h2>
+    <p>Unlock unlimited reading, AI comprehension, cloud sync, and more.</p>
+    <div class="upgrade-plans">
+      <div class="upgrade-plan" onclick="openCheckout('pro_monthly')">
+        <div><div class="upgrade-plan-name">Pro Monthly</div><div style="font-size:12px;color:var(--text-muted)">Cancel anytime</div></div>
+        <div class="upgrade-plan-price">$4.99/mo</div>
+      </div>
+      <div class="upgrade-plan" onclick="openCheckout('pro_annual')">
+        <div><div class="upgrade-plan-name">Pro Annual</div><div style="font-size:12px;color:var(--green)">Save 33%</div></div>
+        <div class="upgrade-plan-price">$39.99/yr</div>
+      </div>
+      <div class="upgrade-plan" onclick="openCheckout('lifetime')">
+        <div><div class="upgrade-plan-name">Lifetime</div><div style="font-size:12px;color:var(--text-muted)">One-time payment</div></div>
+        <div class="upgrade-plan-price">$99</div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn" onclick="closeUpgradeModal()">Maybe later</button></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- Scripts -->
+<script src="auth.js"></script>
+<script src="billing.js"></script>
+<script src="sync.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
