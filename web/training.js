@@ -155,10 +155,26 @@ const DEFAULT_STATE = {
   dayResults: {} // { day: { wpm, comprehension, date } }
 };
 
+const WPM_MIN = 60;
+const WPM_MAX = 700;
+const MIN_READ_SECONDS = 18;
+
+function isValidWPM(wpm) {
+  return typeof wpm === 'number' && wpm >= WPM_MIN && wpm <= WPM_MAX;
+}
+
 function loadState() {
   try {
     const s = JSON.parse(localStorage.getItem('speedread_training'));
-    return s ? { ...DEFAULT_STATE, ...s } : { ...DEFAULT_STATE };
+    if (!s) return { ...DEFAULT_STATE };
+    const merged = { ...DEFAULT_STATE, ...s };
+    // Sanitize corrupted baseline on load
+    if (merged.baselineWPM !== null && !isValidWPM(merged.baselineWPM)) {
+      merged._baselineCorrupted = merged.baselineWPM;
+      merged.baselineWPM = null;
+      merged.currentWPM = null;
+    }
+    return merged;
   } catch { return { ...DEFAULT_STATE }; }
 }
 
@@ -167,6 +183,8 @@ function saveState(state) {
 }
 
 let state = loadState();
+// If we sanitized a corrupted baseline, immediately persist the clean state
+if (state._baselineCorrupted) saveState(state);
 
 // ─── UI Rendering ───
 function getTypeBadge(type) {
@@ -187,11 +205,47 @@ function getDayStatus(day) {
   return 'locked';
 }
 
+function resetBaseline() {
+  if (!confirm('Reset your baseline speed? This will clear your starting WPM so you can retake the Day 1 test. Your completed days and XP are kept.')) return;
+  state.baselineWPM = null;
+  state.currentWPM = null;
+  state._baselineCorrupted = null;
+  delete state.dayResults[1];
+  saveState(state);
+  renderProgress();
+  // Show the baseline banner prompting Day 1 retake
+  renderCorruptionBanner('Baseline cleared. Start Day 1 to set your real reading speed.');
+}
+
+function renderCorruptionBanner(msg) {
+  let banner = document.getElementById('baseline-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'baseline-banner';
+    banner.style.cssText = 'background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.4);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:flex-start;gap:12px;font-size:13px;line-height:1.6';
+    const main = document.querySelector('.training-main');
+    if (main) main.insertBefore(banner, main.firstChild);
+  }
+  banner.innerHTML = `
+    <span style="font-size:20px;flex-shrink:0">⚠️</span>
+    <div>
+      <strong style="color:var(--accent)">${msg}</strong><br>
+      <span style="color:var(--text-muted)">Open Day 1 below to take the reading speed test and calibrate your 28-day journey.</span>
+    </div>
+    <button onclick="this.parentElement.remove()" style="margin-left:auto;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;flex-shrink:0;padding:0 4px">✕</button>
+  `;
+}
+
 function renderProgress() {
   const pct = Math.round((state.completedDays.length / 28) * 100);
   const improvement = state.baselineWPM && state.currentWPM
     ? Math.round(((state.currentWPM - state.baselineWPM) / state.baselineWPM) * 100)
     : 0;
+
+  // Show corrupted baseline banner if we auto-cleared a bad value on load
+  if (state._baselineCorrupted) {
+    setTimeout(() => renderCorruptionBanner(`Invalid baseline detected (${Number(state._baselineCorrupted).toLocaleString()} WPM) — it's been cleared.`), 50);
+  }
 
   document.getElementById('progress-header').innerHTML = `
     <div class="progress-top">
@@ -211,6 +265,7 @@ function renderProgress() {
     <div class="stat-card">
       <div class="stat-value">${state.baselineWPM || '—'}</div>
       <div class="stat-label">Starting WPM</div>
+      ${state.baselineWPM ? `<div style="margin-top:6px"><button onclick="resetBaseline()" style="background:none;border:none;color:var(--text-muted);font-size:10px;cursor:pointer;text-decoration:underline;padding:0">reset</button></div>` : ''}
     </div>
     <div class="stat-card">
       <div class="stat-value">${state.currentWPM || '—'}</div>
@@ -403,18 +458,62 @@ function showWPMReading(day, wordCount) {
 
 function finishWPMTimer(day, wordCount) {
   clearInterval(wpmInterval);
-  const elapsed = (Date.now() - wpmTestStart) / 60000;
-  const wpm = Math.round(wordCount / elapsed);
+  const elapsedMs = Date.now() - wpmTestStart;
+  const elapsedSec = elapsedMs / 1000;
+  const elapsedMin = elapsedMs / 60000;
+  const wpm = Math.round(wordCount / elapsedMin);
 
+  // Validate before saving anything
+  if (elapsedSec < MIN_READ_SECONDS) {
+    showWPMInvalid(day, wordCount, `You finished in ${Math.round(elapsedSec)}s — that's too fast for a ${wordCount}-word passage. Make sure you read every word before clicking Done.`);
+    return;
+  }
+  if (!isValidWPM(wpm)) {
+    const reason = wpm > WPM_MAX
+      ? `Your result was ${wpm.toLocaleString()} WPM — that's above the human ceiling. The timer likely started before you began reading. Let's try again.`
+      : `Your result was ${wpm} WPM — that's unusually low. Make sure you read at your normal pace and click Done right when you finish.`;
+    showWPMInvalid(day, wordCount, reason);
+    return;
+  }
+
+  // Valid — save and show result
   if (day === 1 && !state.baselineWPM) {
     state.baselineWPM = wpm;
     state.currentWPM = wpm;
+    state._baselineCorrupted = null;
   } else {
     state.currentWPM = wpm;
   }
   state.dayResults[day] = { wpm, date: new Date().toISOString() };
   saveState(state);
   showWPMResult(day, wpm, wordCount);
+}
+
+function showWPMInvalid(day, wordCount, reason) {
+  const content = document.getElementById('lesson-content');
+  content.innerHTML = `
+    <div class="lesson-phase result-phase">
+      <div class="lesson-header">
+        <span class="lesson-day-label">Day ${day} — Let's Try Again</span>
+        <button class="btn-close" onclick="closeLesson()">✕</button>
+      </div>
+      <div style="max-width:480px;margin:40px auto;text-align:center">
+        <div style="font-size:48px;margin-bottom:16px">🔄</div>
+        <h2 style="font-size:20px;font-weight:700;margin-bottom:12px">Result didn't look right</h2>
+        <p style="color:var(--text-muted);font-size:14px;line-height:1.7;margin-bottom:28px">${reason}</p>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:28px;text-align:left;font-size:13px;color:var(--text-muted);line-height:1.8">
+          <strong style="color:var(--text)">Tips for an accurate result:</strong><br>
+          ✦ &nbsp;Click Start, then begin reading <em>immediately</em><br>
+          ✦ &nbsp;Read the entire passage, word to word<br>
+          ✦ &nbsp;Click Done the moment you finish the last word<br>
+          ✦ &nbsp;Read at your normal pace — don't rush or slow down
+        </div>
+        <button class="btn btn-primary" style="font-size:15px;padding:13px 36px" onclick="showWPMInstructions(${day}, ${wordCount})">
+          Retake the test →
+        </button>
+      </div>
+    </div>
+  `;
 }
 
 function showWPMResult(day, wpm, wordCount) {
