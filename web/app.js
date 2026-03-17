@@ -89,6 +89,17 @@ function pause() {
 
 function scheduleNext() {
   if (state !== 'playing') return;
+
+  // Free tier: pause at 10,000 words and prompt upgrade
+  if (!isPro() && currentIdx >= FREE_TIER_WORD_CUTOFF) {
+    pause();
+    showUpgradeModal(
+      `You've read ${FREE_TIER_WORD_CUTOFF.toLocaleString()} words — great progress! ` +
+      `Upgrade to Pro to keep reading without limits.`
+    );
+    return;
+  }
+
   if (currentIdx >= words.length) {
     state = 'paused';
     updatePlayBtn();
@@ -320,12 +331,11 @@ function processText(text) {
   words = (typeof text === 'string') ? text.split(/\s+/).filter(w => w.length > 0) : text;
   if (!pageBoundaries.length) pageBoundaries = [{ page: 1, startIdx: 0 }];
 
-  // Free tier word limit
+  // Check daily doc limit (word cutoff is handled during playback, not at load)
   const check = checkFreeTierLimits(words.length);
-  if (!check.allowed && check.reason === 'word_limit') {
+  if (!check.allowed && check.reason === 'daily_docs') {
     showUpgradeModal(check.message);
-    // Truncate to 2000 for free users
-    words = words.slice(0, 2000);
+    return;
   }
 
   incrementDailyUsage(words.length);
@@ -749,28 +759,76 @@ function showStatus(msg) { setStatus('visible', msg); }
 function hideStatus() { setStatus('hidden'); }
 function showReaderZone() { showReader(); }
 
+// Fetch with timeout helper
+async function fetchWithTimeout(url, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+    return resp;
+  } catch(e) {
+    clearTimeout(timer);
+    throw e;
+  }
+}
+
+// Try multiple CORS proxies in order until one works
+async function fetchTextViaProxy(textUrl) {
+  const proxies = [
+    `https://corsproxy.io/?${encodeURIComponent(textUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(textUrl)}`,
+    `https://cors-anywhere.herokuapp.com/${textUrl}`,
+  ];
+  let lastErr;
+  for (const proxyUrl of proxies) {
+    try {
+      const resp = await fetchWithTimeout(proxyUrl, 9000);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const text = await resp.text();
+      if (text.length < 500) throw new Error('Response too short');
+      return text;
+    } catch(e) {
+      lastErr = e;
+      console.warn(`Proxy failed (${proxyUrl.slice(0, 40)}…):`, e.message);
+    }
+  }
+  throw lastErr || new Error('All proxies failed');
+}
+
 async function openLibraryBook(gutenbergId, title, author) {
   showStatus(`Loading "${title}"…`);
   showReaderZone();
   try {
-    const metaResp = await fetch(`https://gutendex.com/books/${gutenbergId}/`);
+    // Fetch metadata with timeout
+    const metaResp = await fetchWithTimeout(`https://gutendex.com/books/${gutenbergId}/`);
+    if (!metaResp.ok) throw new Error(`Metadata fetch failed: ${metaResp.status}`);
     const meta = await metaResp.json();
     const formats = meta.formats || {};
     const textUrl = formats['text/plain; charset=utf-8'] ||
                     formats['text/plain; charset=us-ascii'] ||
                     formats['text/plain'];
-    if (!textUrl) { showToast('No text version available'); return; }
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(textUrl)}`;
-    const textResp = await fetch(proxyUrl);
-    const rawText = await textResp.text();
+    if (!textUrl) {
+      showToast('⚠️ No plain text version available for this book.', 4000);
+      hideStatus();
+      return;
+    }
+
+    showStatus(`Fetching "${title}" text…`);
+    const rawText = await fetchTextViaProxy(textUrl);
     const cleaned = stripGutenbergBoilerplate(rawText);
+
     currentFile = { name: `${title} — ${author}`, size: cleaned.length };
     document.getElementById('book-title-text').textContent = `${title} — ${author}`;
     processText(cleaned);
     showToast(`📚 Loaded: ${title}`);
   } catch(e) {
-    console.error(e);
-    showToast('Could not load book. Try another.', 3000);
+    console.error('openLibraryBook error:', e);
+    if (e.name === 'AbortError') {
+      showToast('⏱ Request timed out. Check your connection and try again.', 4000);
+    } else {
+      showToast('⚠️ Could not load book — try again or paste the text directly.', 4000);
+    }
     hideStatus();
   }
 }

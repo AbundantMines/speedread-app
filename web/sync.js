@@ -142,10 +142,13 @@ function incrementDailyUsage(wordCount) {
   return usage;
 }
 
+const FREE_TIER_WORD_CUTOFF = 10000;
+
 function checkFreeTierLimits(wordCount) {
   if (isPro()) return { allowed: true };
   const usage = getDailyUsage();
-  if (usage.docs >= 3) return { allowed: false, reason: 'daily_docs', message: 'You\'ve reached your free limit of 3 documents per day.' };
-  if (wordCount > 2000) return { allowed: false, reason: 'word_limit', message: 'Free tier is limited to 2,000 words per session. This document has ' + wordCount.toLocaleString() + ' words.' };
+  if (usage.docs >= 5) return { allowed: false, reason: 'daily_docs', message: 'You\'ve reached your free limit of 5 documents per day.' };
+  // No block at load time — free users read up to FREE_TIER_WORD_CUTOFF words
+  // before being prompted, handled during playback in scheduleNext()
   return { allowed: true };
 }
