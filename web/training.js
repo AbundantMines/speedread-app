@@ -333,43 +333,77 @@ function startDrill(day) {
 
 // ─── WPM Test ───
 let wpmTestStart = null;
+let wpmInterval = null;
+
 function showWPMTest(day) {
-  const lesson = CURRICULUM[day - 1];
   const passage = PASSAGES.standard_passage;
   const wordCount = passage.split(/\s+/).length;
-  const content = document.getElementById('lesson-content');
+  showWPMInstructions(day, wordCount);
+}
 
+function showWPMInstructions(day, wordCount) {
+  const content = document.getElementById('lesson-content');
+  const isBaseline = day === 1 && !state.baselineWPM;
   content.innerHTML = `
     <div class="lesson-phase drill-phase">
       <div class="lesson-header">
-        <span class="lesson-day-label">Day ${day} — WPM Test</span>
+        <span class="lesson-day-label">Day ${day} — Speed Test</span>
         <button class="btn-close" onclick="closeLesson()">✕</button>
       </div>
-      <p class="drill-desc">${lesson.drill.description || 'Read this passage at your natural pace.'}</p>
-      <div class="wpm-passage" id="wpm-passage">${passage.replace(/\n\n/g, '</p><p>')}</div>
-      <div class="wpm-controls">
-        <button class="btn btn-primary" id="wpm-start-btn" onclick="startWPMTimer(${day}, ${wordCount})">Start Reading</button>
-        <button class="btn btn-primary" id="wpm-done-btn" style="display:none" onclick="finishWPMTimer(${day}, ${wordCount})">Done Reading</button>
-        <div id="wpm-timer" class="wpm-timer" style="display:none">⏱ <span id="wpm-seconds">0</span>s</div>
+      <div style="max-width:520px;margin:40px auto;text-align:center">
+        <div style="font-size:48px;margin-bottom:16px">📖</div>
+        <h2 style="font-size:22px;font-weight:700;margin-bottom:12px">${isBaseline ? 'Let\'s measure your starting speed' : 'Time to measure your progress'}</h2>
+        <p style="color:var(--text-muted);font-size:15px;line-height:1.7;margin-bottom:32px">
+          ${isBaseline
+            ? 'A short passage will appear when you click Start. Read it at your normal, comfortable pace — don\'t rush or slow down on purpose. Click <strong style="color:var(--text)">Done Reading</strong> the moment you finish the last word. The timer only runs while you\'re reading.'
+            : 'The same passage from Day 1 will appear. Read at your natural pace and click Done when you finish. We\'ll compare this to your baseline.'}
+        </p>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:32px;text-align:left">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:6px">What to expect</div>
+          <div style="font-size:13px;color:var(--text);line-height:1.8">
+            ✦ &nbsp;Passage appears only after you click Start<br>
+            ✦ &nbsp;Timer starts the instant you click — begin reading immediately<br>
+            ✦ &nbsp;Click Done as soon as you read the last word<br>
+            ✦ &nbsp;Read naturally — this is a baseline, not a race
+          </div>
+        </div>
+        <button class="btn btn-primary" style="font-size:16px;padding:14px 40px" onclick="showWPMReading(${day}, ${wordCount})">Start Reading →</button>
       </div>
     </div>
   `;
 }
 
-let wpmInterval = null;
-function startWPMTimer(day, wordCount) {
+function showWPMReading(day, wordCount) {
+  const passage = PASSAGES.standard_passage;
+  const content = document.getElementById('lesson-content');
   wpmTestStart = Date.now();
-  document.getElementById('wpm-start-btn').style.display = 'none';
-  document.getElementById('wpm-done-btn').style.display = '';
-  document.getElementById('wpm-timer').style.display = '';
+
+  content.innerHTML = `
+    <div class="lesson-phase drill-phase">
+      <div class="lesson-header" style="justify-content:space-between">
+        <span class="lesson-day-label">Day ${day} — Reading</span>
+        <div style="display:flex;align-items:center;gap:14px">
+          <div class="wpm-timer">⏱ <span id="wpm-seconds">0</span>s</div>
+          <button class="btn btn-primary" onclick="finishWPMTimer(${day}, ${wordCount})">Done Reading ✓</button>
+        </div>
+      </div>
+      <div class="wpm-passage" id="wpm-passage">${passage.replace(/\n\n/g, '</p><p>')}</div>
+      <div style="text-align:center;padding:24px 0">
+        <button class="btn btn-primary" style="font-size:15px;padding:12px 36px" onclick="finishWPMTimer(${day}, ${wordCount})">Done Reading ✓</button>
+        <p style="color:var(--text-muted);font-size:12px;margin-top:10px">Click the moment you finish the last word</p>
+      </div>
+    </div>
+  `;
+
   wpmInterval = setInterval(() => {
-    document.getElementById('wpm-seconds').textContent = Math.round((Date.now() - wpmTestStart) / 1000);
+    const el = document.getElementById('wpm-seconds');
+    if (el) el.textContent = Math.round((Date.now() - wpmTestStart) / 1000);
   }, 500);
 }
 
 function finishWPMTimer(day, wordCount) {
   clearInterval(wpmInterval);
-  const elapsed = (Date.now() - wpmTestStart) / 60000; // minutes
+  const elapsed = (Date.now() - wpmTestStart) / 60000;
   const wpm = Math.round(wordCount / elapsed);
 
   if (day === 1 && !state.baselineWPM) {
@@ -380,23 +414,53 @@ function finishWPMTimer(day, wordCount) {
   }
   state.dayResults[day] = { wpm, date: new Date().toISOString() };
   saveState(state);
+  showWPMResult(day, wpm, wordCount);
+}
 
+function showWPMResult(day, wpm, wordCount) {
   const content = document.getElementById('lesson-content');
-  const improvement = state.baselineWPM ? Math.round(((wpm - state.baselineWPM) / state.baselineWPM) * 100) : 0;
+  const improvement = state.baselineWPM && day > 1
+    ? Math.round(((wpm - state.baselineWPM) / state.baselineWPM) * 100) : 0;
+  let context = '';
+  if (wpm < 150) context = 'below average — plenty of room to grow';
+  else if (wpm < 238) context = 'around the adult average of 238 WPM';
+  else if (wpm < 350) context = 'above average — a solid foundation to build on';
+  else if (wpm < 500) context = 'college-level speed — faster than most readers';
+  else context = 'speed reader territory — top 5%';
+
   content.innerHTML = `
     <div class="lesson-phase result-phase">
       <div class="lesson-header">
-        <span class="lesson-day-label">Day ${day} — Results</span>
+        <span class="lesson-day-label">Day ${day} — Your Result</span>
         <button class="btn-close" onclick="closeLesson()">✕</button>
       </div>
       <div class="wpm-result">
         <div class="wpm-big">${wpm}</div>
-        <div class="wpm-label">Words Per Minute</div>
-        ${improvement !== 0 ? `<div class="wpm-improvement ${improvement > 0 ? 'positive' : ''}">${improvement > 0 ? '+' : ''}${improvement}% from baseline</div>` : ''}
+        <div class="wpm-label">words per minute</div>
+        <div class="wpm-improvement" style="margin-top:8px;color:var(--text-muted);font-size:14px">${context}</div>
+        ${improvement !== 0 ? `<div class="wpm-improvement ${improvement > 0 ? 'positive' : ''}" style="margin-top:8px;font-size:18px;font-weight:700">${improvement > 0 ? '+' : ''}${improvement}% from your baseline</div>` : ''}
       </div>
-      <button class="btn btn-primary" onclick="completeLesson(${day})">Complete Day ${day} ✓</button>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:8px">
+        <button class="btn btn-primary" style="min-width:220px;font-size:15px;padding:13px 32px" onclick="completeLesson(${day})">
+          ${day === 1 ? 'Lock in my baseline ✓' : 'Complete Day ' + day + ' ✓'}
+        </button>
+        <button class="btn" style="font-size:13px;color:var(--text-muted)" onclick="retakeWPMTest(${day}, ${wordCount})">
+          ↩ Something looks off — retake the test
+        </button>
+      </div>
     </div>
   `;
+}
+
+function retakeWPMTest(day, wordCount) {
+  // Clear any saved result for this day so baseline resets cleanly
+  if (day === 1) {
+    state.baselineWPM = null;
+    state.currentWPM = null;
+  }
+  delete state.dayResults[day];
+  saveState(state);
+  showWPMInstructions(day, wordCount);
 }
 
 // ─── RSVP Drill ───
