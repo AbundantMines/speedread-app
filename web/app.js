@@ -4,6 +4,17 @@
 
 // ── STATE ──
 let state = 'idle'; // idle | loading | ready | playing | paused
+
+// Rolling buffer: [{word, timestamp}]
+let wordBuffer = [];
+const BUFFER_MAX_SECONDS = 120;
+
+function addToBuffer(word) {
+  const now = Date.now();
+  wordBuffer.push({ word, timestamp: now });
+  const cutoff = now - BUFFER_MAX_SECONDS * 1000;
+  wordBuffer = wordBuffer.filter(e => e.timestamp >= cutoff);
+}
 let words = [];
 let currentIdx = 0;
 let wpm = 300;
@@ -42,6 +53,7 @@ function displayWord(word) {
   document.getElementById('word-after').textContent = word.slice(orp + 1);
   document.getElementById('word-row').style.display = 'flex';
   document.getElementById('rsvp-idle').style.display = 'none';
+  addToBuffer(word);
 }
 
 function showIdleDisplay(msg) {
@@ -80,17 +92,27 @@ function scheduleNext() {
   if (currentIdx >= words.length) {
     state = 'paused';
     updatePlayBtn();
-    showToast('🎉 Finished!');
     saveProgress();
+    const duration = sessionStartTime ? Math.round((Date.now() - sessionStartTime) / 1000) : 0;
+    showCompletionModal(currentFile.name.replace(/\.[^.]+$/, ''), words.length, wpm, duration);
     saveSessionData();
     stopAutoSave();
     return;
   }
-  const word = words[currentIdx];
-  displayWord(word);
-  updateProgress();
-  if (contextVisible) updateContext();
-  timerId = setTimeout(() => { currentIdx++; scheduleNext(); }, getWordDelay(word, wpm));
+  if (chunkSize > 1) {
+    const chunk = getChunk(currentIdx);
+    displayWord(chunk);
+    updateProgress();
+    if (contextVisible) updateContext();
+    const delay = getChunkDelay(chunk, wpm, chunkSize);
+    timerId = setTimeout(() => { currentIdx += chunkSize; scheduleNext(); }, delay);
+  } else {
+    const word = words[currentIdx];
+    displayWord(word);
+    updateProgress();
+    if (contextVisible) updateContext();
+    timerId = setTimeout(() => { currentIdx++; scheduleNext(); }, getWordDelay(word, wpm));
+  }
 }
 
 function updatePlayBtn() {
@@ -236,6 +258,12 @@ async function handleFile(file) {
   try {
     if (file.name.toLowerCase().endsWith('.pdf')) {
       await loadPDF(file);
+    } else if (file.name.toLowerCase().endsWith('.epub')) {
+      setStatus('visible', 'Extracting ePub…');
+      const { text, title } = await extractEpubText(file);
+      if (title) document.getElementById('book-title-text').textContent = title;
+      processText(text);
+      showToast('📚 ePub loaded: ' + (title || file.name));
     } else {
       const text = await file.text();
       processText(text);
@@ -354,33 +382,43 @@ function startFromPaste() {
 function openURLModal() { document.getElementById('url-modal').classList.remove('hidden'); setTimeout(() => document.getElementById('url-input').focus(), 50); }
 function closeURLModal() { document.getElementById('url-modal').classList.add('hidden'); document.getElementById('url-input').value = ''; }
 async function importFromURL() {
-  const url = document.getElementById('url-input').value.trim();
-  if (!url) { showToast('⚠️ Please enter a URL.'); return; }
+  const input = document.getElementById('url-input');
+  const url = input.value.trim();
+  if (!url || !url.startsWith('http')) { showToast('Please enter a valid URL'); return; }
   closeURLModal();
-  showReader();
-  setStatus('visible', 'Fetching article…');
-  document.getElementById('book-title-text').textContent = 'Loading…';
-
+  showStatus('Fetching article…');
+  showReaderZone();
   try {
-    // Use a CORS proxy or direct fetch. Direct fetch works for same-origin only.
-    // In production, you'd use a serverless function to fetch and extract text.
-    const resp = await fetch(url);
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const resp = await fetch(proxyUrl);
     const html = await resp.text();
-    // Simple text extraction: strip HTML tags
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    // Remove scripts, styles, nav, footer
-    doc.querySelectorAll('script,style,nav,footer,header,aside').forEach(el => el.remove());
-    const text = (doc.querySelector('article') || doc.body).textContent.replace(/\s+/g, ' ').trim();
-    const title = doc.querySelector('title')?.textContent || new URL(url).hostname;
-
+    const text = extractReadableText(html);
+    if (text.split(' ').length < 50) {
+      showToast('Could not extract readable text from this URL');
+      return;
+    }
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].trim() : url;
     currentFile = { name: title, size: text.length };
     document.getElementById('book-title-text').textContent = title;
     processText(text);
   } catch(e) {
-    setStatus('hidden');
-    showToast('⚠️ Could not fetch URL. CORS may be blocking the request. Try pasting the text instead.', 5000);
-    closeBook();
+    showToast('Could not fetch URL. Try pasting the text instead.', 4000);
+    hideStatus();
   }
+}
+
+function extractReadableText(html) {
+  html = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  html = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  html = html.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '');
+  html = html.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '');
+  html = html.replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '');
+  html = html.replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, '');
+  const text = html.replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&#\d+;/g, ' ')
+    .replace(/\s{3,}/g, '\n\n').trim();
+  return text;
 }
 
 // ── HELP ──
@@ -532,7 +570,7 @@ document.addEventListener('keydown', e => {
   const tag = document.activeElement?.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
   // Skip if any modal is open
-  const modals = ['paste-modal','url-modal','help-modal','auth-modal','upgrade-modal'];
+  const modals = ['paste-modal','url-modal','help-modal','auth-modal','upgrade-modal','catchup-modal','completion-modal'];
   for (const id of modals) {
     if (!document.getElementById(id).classList.contains('hidden')) {
       if (e.key === 'Escape') document.getElementById(id).classList.add('hidden');
@@ -561,12 +599,294 @@ document.getElementById('rsvp-window').addEventListener('touchend', e => {
 }, { passive: true });
 
 // Click outside modals
-['paste-modal','url-modal','help-modal','auth-modal','upgrade-modal'].forEach(id => {
+['paste-modal','url-modal','help-modal','auth-modal','upgrade-modal','catchup-modal','completion-modal'].forEach(id => {
   document.getElementById(id).addEventListener('click', function(e) { if (e.target === this) this.classList.add('hidden'); });
 });
 
 // ── UTILS ──
 function esc(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''; }
+
+// ── CATCH ME UP ──
+async function catchMeUp(seconds = 30) {
+  if (state === 'playing') pause();
+  const cutoff = Date.now() - seconds * 1000;
+  const recentWords = wordBuffer
+    .filter(e => e.timestamp >= cutoff)
+    .map(e => e.word)
+    .join(' ');
+  if (recentWords.split(' ').length < 10) {
+    showToast('Not enough text to summarize yet');
+    return;
+  }
+  showCatchUpModal('loading', seconds);
+  try {
+    const summary = await getSummary(recentWords, seconds);
+    showCatchUpModal('result', seconds, summary);
+  } catch (e) {
+    showCatchUpModal('fallback', seconds, recentWords.split(' ').slice(-40).join(' ') + '...');
+  }
+}
+
+async function getSummary(text, seconds) {
+  const wordCount = text.split(' ').length;
+  if (window.OPENAI_API_KEY) {
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${window.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{
+          role: 'user',
+          content: `Summarize this passage in 2-3 clear sentences. Be direct and capture the key points:\n\n${text}`
+        }],
+        max_tokens: 150,
+        temperature: 0.3
+      })
+    });
+    const data = await resp.json();
+    return data.choices[0].message.content;
+  }
+  const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
+  if (sentences.length <= 3) return text;
+  return [sentences[0], sentences[Math.floor(sentences.length/2)], sentences[sentences.length-1]].join(' ');
+}
+
+function showCatchUpModal(modalState, seconds, content = '') {
+  const modal = document.getElementById('catchup-modal');
+  const loading = document.getElementById('catchup-loading');
+  const result = document.getElementById('catchup-result');
+  const title = document.getElementById('catchup-title');
+  title.textContent = `Last ${seconds} seconds`;
+  modal.classList.remove('hidden');
+  if (modalState === 'loading') {
+    loading.style.display = 'flex';
+    result.style.display = 'none';
+  } else {
+    loading.style.display = 'none';
+    result.style.display = 'block';
+    result.textContent = content;
+  }
+}
+
+function closeCatchUpModal(resume = false) {
+  document.getElementById('catchup-modal').classList.add('hidden');
+  if (resume && words.length > 0) play();
+}
+
+// ── PAUSE ON TAB SWITCH ──
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && state === 'playing') {
+    pause();
+    showToast('⏸ Paused — tab switched');
+  }
+});
+
+// ── PUBLIC DOMAIN LIBRARY (Gutendex) ──
+const FEATURED_BOOKS = [
+  { id: 84, title: 'Frankenstein', author: 'Mary Shelley' },
+  { id: 1342, title: 'Pride and Prejudice', author: 'Jane Austen' },
+  { id: 11, title: 'Alice in Wonderland', author: 'Lewis Carroll' },
+  { id: 2701, title: 'Moby Dick', author: 'Herman Melville' },
+  { id: 1661, title: 'Sherlock Holmes', author: 'Arthur Conan Doyle' },
+  { id: 174, title: 'The Picture of Dorian Gray', author: 'Oscar Wilde' },
+  { id: 98, title: 'A Tale of Two Cities', author: 'Charles Dickens' },
+  { id: 1952, title: 'The Yellow Wallpaper', author: 'Charlotte Perkins Gilman' },
+  { id: 1080, title: 'A Modest Proposal', author: 'Jonathan Swift' },
+  { id: 76, title: 'The Adventures of Tom Sawyer', author: 'Mark Twain' },
+];
+
+async function loadLibrary() {
+  const list = document.getElementById('library-list');
+  if (!list) return;
+  list.innerHTML = FEATURED_BOOKS.map(b => `
+    <div class="library-item" onclick="openLibraryBook(${b.id}, '${b.title.replace(/'/g, "\\'")}', '${b.author.replace(/'/g, "\\'")}')">
+      <div class="library-title">${b.title}</div>
+      <div class="library-author">${b.author}</div>
+    </div>
+  `).join('');
+}
+
+async function searchLibrary(query) {
+  if (query.length < 2) { loadLibrary(); return; }
+  const list = document.getElementById('library-list');
+  list.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px">Searching…</div>';
+  try {
+    const resp = await fetch(`https://gutendex.com/books/?search=${encodeURIComponent(query)}&languages=en&mime_type=text%2Fplain`);
+    const data = await resp.json();
+    const books = data.results.slice(0, 8);
+    if (!books.length) {
+      list.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px">No results</div>';
+      return;
+    }
+    list.innerHTML = books.map(b => {
+      const author = b.authors[0]?.name?.split(',').reverse().join(' ').trim() || 'Unknown';
+      return `<div class="library-item" onclick="openLibraryBook(${b.id}, '${b.title.replace(/'/g, "\\'")}', '${author.replace(/'/g, "\\'")}')">
+        <div class="library-title">${b.title}</div>
+        <div class="library-author">${author}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px">Search unavailable</div>';
+  }
+}
+
+function showStatus(msg) { setStatus('visible', msg); }
+function hideStatus() { setStatus('hidden'); }
+function showReaderZone() { showReader(); }
+
+async function openLibraryBook(gutenbergId, title, author) {
+  showStatus(`Loading "${title}"…`);
+  showReaderZone();
+  try {
+    const metaResp = await fetch(`https://gutendex.com/books/${gutenbergId}/`);
+    const meta = await metaResp.json();
+    const formats = meta.formats || {};
+    const textUrl = formats['text/plain; charset=utf-8'] ||
+                    formats['text/plain; charset=us-ascii'] ||
+                    formats['text/plain'];
+    if (!textUrl) { showToast('No text version available'); return; }
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(textUrl)}`;
+    const textResp = await fetch(proxyUrl);
+    const rawText = await textResp.text();
+    const cleaned = stripGutenbergBoilerplate(rawText);
+    currentFile = { name: `${title} — ${author}`, size: cleaned.length };
+    document.getElementById('book-title-text').textContent = `${title} — ${author}`;
+    processText(cleaned);
+    showToast(`📚 Loaded: ${title}`);
+  } catch(e) {
+    console.error(e);
+    showToast('Could not load book. Try another.', 3000);
+    hideStatus();
+  }
+}
+
+function stripGutenbergBoilerplate(text) {
+  const startMatch = text.match(/\*{3}\s*START OF (THIS|THE) PROJECT GUTENBERG[^\n]*\n/i);
+  if (startMatch) {
+    text = text.slice(text.indexOf(startMatch[0]) + startMatch[0].length);
+  }
+  const endMatch = text.match(/\*{3}\s*END OF (THIS|THE) PROJECT GUTENBERG/i);
+  if (endMatch) {
+    text = text.slice(0, text.indexOf(endMatch[0]));
+  }
+  return text.trim();
+}
+
+function loadLibraryPage() {
+  window.open('https://gutendex.com/books/?languages=en&mime_type=text%2Fplain', '_blank');
+}
+
+// ── CHUNK MODE ──
+let chunkSize = 1;
+
+function getChunk(startIdx) {
+  return words.slice(startIdx, startIdx + chunkSize).join(' ');
+}
+
+function getChunkDelay(chunk, wpmVal, size) {
+  const base = 60000 / wpmVal;
+  const chunkMultiplier = size === 2 ? 1.6 : size === 3 ? 2.1 : 1.0;
+  const lastWord = chunk.split(' ').pop();
+  let punct = 1.0;
+  if (/[.!?]/.test(lastWord)) punct = 2.5;
+  else if (/[,;:]/.test(lastWord)) punct = 1.4;
+  return Math.max(base * chunkMultiplier * punct, 80);
+}
+
+function setChunkSize(n) {
+  chunkSize = n;
+  [1,2,3].forEach(i => {
+    const btn = document.getElementById('chunk' + i + '-btn');
+    if (i === n) { btn.style.background = 'var(--accent)'; btn.style.color = '#000'; }
+    else { btn.style.background = ''; btn.style.color = ''; }
+  });
+}
+
+// ── STREAKS ──
+function updateStreak() {
+  const data = JSON.parse(localStorage.getItem('speedread_streak') || '{"streak":0,"lastDate":null}');
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (data.lastDate === today) {
+    return data.streak;
+  } else if (data.lastDate === yesterday) {
+    data.streak += 1;
+  } else {
+    data.streak = 1;
+  }
+  data.lastDate = today;
+  localStorage.setItem('speedread_streak', JSON.stringify(data));
+  return data.streak;
+}
+
+function getStreak() {
+  const data = JSON.parse(localStorage.getItem('speedread_streak') || '{"streak":0,"lastDate":null}');
+  return data.streak;
+}
+
+// ── COMPLETION MODAL ──
+function showCompletionModal(docTitle, wordsRead, wpmAchieved, durationSeconds) {
+  document.getElementById('completion-title').textContent = docTitle || 'Reading session complete';
+  document.getElementById('comp-wpm').textContent = wpmAchieved;
+  document.getElementById('comp-words').textContent = wordsRead.toLocaleString();
+  document.getElementById('comp-time').textContent = Math.round(durationSeconds / 60);
+  const streak = updateStreak();
+  document.getElementById('comp-streak').textContent = streak;
+  document.getElementById('streak-display').textContent = streak > 0 ? '🔥 ' + streak + ' day streak' : '';
+  document.getElementById('completion-modal').classList.remove('hidden');
+}
+
+function closeCompletionModal() {
+  document.getElementById('completion-modal').classList.add('hidden');
+}
+
+function shareSession() {
+  const wpm = document.getElementById('comp-wpm').textContent;
+  const words = document.getElementById('comp-words').textContent;
+  const streak = document.getElementById('comp-streak').textContent;
+  const text = `I just read ${words} words at ${wpm} WPM with SpeedRead! 🔥 ${streak} day streak. speedread.app`;
+  if (navigator.share) {
+    navigator.share({ text });
+  } else {
+    navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!'));
+  }
+}
+
+// ── FONT SELECTION ──
+function setFont(fontFamily) {
+  document.getElementById('word-row').style.fontFamily = fontFamily;
+  localStorage.setItem('speedread_font', fontFamily);
+}
+
+// ── SAMPLE ARTICLE ──
+function loadSampleArticle() {
+  const SAMPLE = `The Science of Reading Fast
+
+Speed reading is not a myth. Research from the University of Massachusetts found that the average adult reads at 238 words per minute — about the same speed they could read at age 18. Yet humans process speech at 400 words per minute and can comprehend auditory information at 600 words per minute or faster. The gap between how fast we read and how fast we can understand is enormous.
+
+The primary bottleneck is not comprehension speed — it's habits. Specifically, three habits slow almost every reader down: subvocalization (internally "saying" each word), regression (re-reading words already seen), and narrow visual span (fixating on one word at a time instead of processing groups).
+
+RSVP — Rapid Serial Visual Presentation — addresses all three simultaneously. By presenting words sequentially at a controlled rate, RSVP eliminates eye movement entirely. Your eyes stay fixed in one place. Words come to you. The result: reading speed increases dramatically with no loss of comprehension, and often improved comprehension because attention is forced to stay focused rather than drift.
+
+Studies by Rayner et al. (2016) showed that skilled readers make only 3-4 fixations per line of text, while novice readers make 7-8. Each fixation costs roughly 200-250 milliseconds. Eliminating fixations through RSVP can theoretically allow reading at 600-900 WPM while maintaining comprehension.
+
+The key is progressive training. Trying to read at 900 WPM immediately is like trying to run a marathon without training — you'll fail and conclude it's impossible. But building speed gradually, allowing comprehension to adapt, produces lasting results. Most people double their reading speed within three weeks of consistent practice.
+
+The practical application is significant. The average knowledge worker reads 4-5 hours per day. At 238 WPM, a 300-page book takes roughly 10 hours. At 500 WPM, that same book takes under 5 hours. At 700 WPM, under 3.5 hours. Over a year of daily reading, the compounding effect of faster reading is hundreds of hours saved — time that can be reinvested in reading more, understanding more, and knowing more.`;
+
+  loadText(SAMPLE, 'The Science of Reading Fast');
+  showToast('📰 Sample article loaded');
+}
+
+function loadText(text, title) {
+  currentFile = { name: title || 'Untitled', size: text.length };
+  showReader();
+  document.getElementById('book-title-text').textContent = title || 'Untitled';
+  processText(text);
+}
 
 // ── INIT ──
 window.addEventListener('DOMContentLoaded', () => {
@@ -576,6 +896,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
   updateAccountUI();
   refreshHistory();
+  loadLibrary();
+
+  // Restore font
+  const savedFont = localStorage.getItem('speedread_font');
+  if (savedFont) { document.getElementById('font-select').value = savedFont; setFont(savedFont); }
+
+  // Show streak
+  const streakEl = document.getElementById('streak-display');
+  if (streakEl) streakEl.textContent = getStreak() > 0 ? '🔥 ' + getStreak() + ' day streak' : '';
 
   // Check for plan redirect from landing page
   const params = new URLSearchParams(window.location.search);

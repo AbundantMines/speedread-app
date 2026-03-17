@@ -9,6 +9,7 @@
 <meta name="theme-color" content="#0a0a0a">
 <title>SpeedRead — Reader</title>
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://fonts.cdnfonts.com/css/opendyslexic">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>if(typeof pdfjsLib!=='undefined')pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <!-- Supabase JS — uncomment when configured -->
@@ -226,6 +227,29 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
   font-weight: 700; margin-left: 6px;
 }
 
+/* ─── CATCH ME UP ─── */
+.catchup-row { display: flex; align-items: center; gap: 8px; justify-content: center; }
+.btn-catchup {
+  background: rgba(201,168,76,0.12);
+  border: 1px solid rgba(201,168,76,0.3);
+  color: var(--accent);
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-catchup:hover { background: rgba(201,168,76,0.22); border-color: var(--accent); }
+
+/* ─── LIBRARY ─── */
+.library-item {
+  padding: 8px 10px; border-radius: 6px; cursor: pointer;
+  margin-bottom: 2px; transition: background 0.15s;
+}
+.library-item:hover { background: var(--bg-elevated); }
+.library-title { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.library-author { font-size: 11px; color: var(--text-muted); }
+
 /* ─── MOBILE ─── */
 .sidebar-toggle {
   display: none; position: fixed; bottom: 20px; left: 20px; z-index: 200;
@@ -271,11 +295,25 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
     <div class="sidebar-chart" id="wpm-chart"></div>
   </div>
 
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">🎓 Training</div>
+    <div id="training-progress-mini" style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Start your 28-day course →</div>
+    <button class="btn" style="width:100%;font-size:12px" onclick="window.location.href='training.html'">Open Course</button>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">📚 Library</div>
+    <input type="text" id="library-search" placeholder="Search books…" style="width:100%;margin-bottom:8px;font-size:12px;padding:6px 10px" oninput="searchLibrary(this.value)">
+    <div id="library-list" style="max-height:300px;overflow-y:auto"></div>
+    <button class="btn" style="width:100%;margin-top:8px;font-size:12px" onclick="loadLibraryPage()">Browse all classics →</button>
+  </div>
+
   <div class="sidebar-account" id="account-section">
     <div class="account-avatar" id="account-avatar">?</div>
     <div class="account-info">
       <div class="account-name" id="account-name">Not signed in</div>
       <span class="account-plan plan-free" id="account-plan">FREE</span>
+      <div id="streak-display" style="font-size:11px;color:var(--accent);margin-top:2px"></div>
     </div>
     <span class="account-logout" id="account-logout" title="Sign out / Sign in" onclick="handleAccountClick()">⚙</span>
   </div>
@@ -289,6 +327,12 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
   <div class="topbar" id="topbar">
     <div class="topbar-title">📖 <strong id="book-title-text">Ready to read</strong></div>
     <div class="topbar-actions">
+      <select id="font-select" onchange="setFont(this.value)" style="background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer">
+        <option value="Georgia, serif" selected>Serif (default)</option>
+        <option value="'OpenDyslexic', sans-serif">OpenDyslexic</option>
+        <option value="system-ui, sans-serif">System UI</option>
+        <option value="'Courier New', monospace">Monospace</option>
+      </select>
       <div class="font-size-control">
         <button class="btn btn-sm" onclick="changeFontSize(-4)" title="Smaller">A-</button>
         <button class="btn btn-sm" onclick="changeFontSize(4)" title="Larger">A+</button>
@@ -303,11 +347,32 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 
     <!-- UPLOAD ZONE -->
     <div id="upload-zone">
+      <!-- Quick Start -->
+      <div id="quickstart" style="width:100%;max-width:620px;margin-bottom:20px">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.8px">Quick Start</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <button class="btn" style="flex-direction:column;padding:12px;height:auto;text-align:center" onclick="loadSampleArticle()">
+            <div style="font-size:20px;margin-bottom:4px">📰</div>
+            <div style="font-size:12px;font-weight:600">Sample Article</div>
+            <div style="font-size:10px;color:var(--text-muted)">~3 min</div>
+          </button>
+          <button class="btn" style="flex-direction:column;padding:12px;height:auto;text-align:center" onclick="openLibraryBook(84, 'Frankenstein', 'Mary Shelley')">
+            <div style="font-size:20px;margin-bottom:4px">📚</div>
+            <div style="font-size:12px;font-weight:600">Classic Novel</div>
+            <div style="font-size:10px;color:var(--text-muted)">Frankenstein</div>
+          </button>
+          <button class="btn" style="flex-direction:column;padding:12px;height:auto;text-align:center" onclick="window.location.href='training.html'">
+            <div style="font-size:20px;margin-bottom:4px">🎓</div>
+            <div style="font-size:12px;font-weight:600">Take the Course</div>
+            <div style="font-size:10px;color:var(--text-muted)">28-day program</div>
+          </button>
+        </div>
+      </div>
       <div class="drop-zone" id="drop-zone">
         <input type="file" id="file-input" accept=".pdf,.txt,.md,.epub" tabindex="-1">
         <div class="drop-icon">📄</div>
         <div class="drop-title">Drop PDF or TXT here</div>
-        <div class="drop-sub">or click to browse • supports PDF, TXT, MD</div>
+        <div class="drop-sub">or click to browse • supports PDF, TXT, MD, ePub</div>
       </div>
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         <button class="btn" onclick="openPasteModal()">📋 Paste Text</button>
@@ -350,12 +415,24 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
           <button class="btn btn-jump" onclick="jumpWords(100)" title="Fwd 100">►►</button>
           <button class="btn btn-sm" onclick="seekTo(0)" title="Restart">⟲</button>
         </div>
+        <div class="catchup-row">
+          <button class="btn btn-catchup" onclick="catchMeUp(30)">↩ Last 30s</button>
+          <button class="btn btn-catchup" onclick="catchMeUp(60)">↩ Last 60s</button>
+          <span style="font-size:11px;color:var(--text-muted);margin-left:4px">Catch me up</span>
+        </div>
       </div>
 
       <div class="wpm-section">
         <div class="wpm-header">
           <span>WPM</span>
           <span class="wpm-display" id="wpm-display">300</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">Chunk</span>
+          <button class="btn btn-preset" id="chunk1-btn" onclick="setChunkSize(1)" style="background:var(--accent);color:#000">1w</button>
+          <button class="btn btn-preset" id="chunk2-btn" onclick="setChunkSize(2)">2w</button>
+          <button class="btn btn-preset" id="chunk3-btn" onclick="setChunkSize(3)">3w</button>
+          <span style="font-size:11px;color:var(--text-muted)">words/flash</span>
         </div>
         <div class="wpm-presets">
           <button class="btn btn-preset" onclick="setWPM(150)">150</button>
@@ -473,7 +550,53 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 
 <div id="toast-container"></div>
 
+<!-- CATCH UP MODAL -->
+<div class="modal-overlay hidden" id="catchup-modal">
+  <div class="modal" style="max-width:480px">
+    <h2 id="catchup-title">Last 30 seconds</h2>
+    <div id="catchup-loading" style="display:flex;align-items:center;gap:12px;padding:20px 0">
+      <div class="spinner"></div>
+      <span style="color:var(--text-muted)">Summarizing what you just read…</span>
+    </div>
+    <div id="catchup-result" style="display:none;line-height:1.7;font-size:15px;color:var(--text);padding:8px 0;border-left:3px solid var(--accent);padding-left:16px;font-style:italic"></div>
+    <div class="modal-footer" style="margin-top:20px">
+      <button class="btn" onclick="closeCatchUpModal(false)">Close</button>
+      <button class="btn btn-primary" onclick="closeCatchUpModal(true)">▶ Resume Reading</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMPLETION MODAL -->
+<div class="modal-overlay hidden" id="completion-modal">
+  <div class="modal" style="max-width:480px;text-align:center">
+    <div style="font-size:48px;margin-bottom:8px">🎉</div>
+    <h2 style="font-size:24px;margin-bottom:4px">Session Complete!</h2>
+    <p id="completion-title" style="color:var(--text-muted);margin-bottom:24px"></p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px">
+      <div style="background:var(--bg-elevated);border-radius:10px;padding:16px">
+        <div style="font-size:28px;font-weight:800;color:var(--accent)" id="comp-wpm">—</div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-top:4px">WPM</div>
+      </div>
+      <div style="background:var(--bg-elevated);border-radius:10px;padding:16px">
+        <div style="font-size:28px;font-weight:800;color:var(--accent)" id="comp-words">—</div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-top:4px">Words Read</div>
+      </div>
+      <div style="background:var(--bg-elevated);border-radius:10px;padding:16px">
+        <div style="font-size:28px;font-weight:800;color:var(--accent)" id="comp-time">—</div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-top:4px">Minutes</div>
+      </div>
+      <div style="background:var(--bg-elevated);border-radius:10px;padding:16px">
+        <div style="font-size:28px;font-weight:800;color:var(--accent)" id="comp-streak">—</div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-top:4px">Day Streak 🔥</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="shareSession()">📤 Share My Stats</button>
+    <button class="btn" style="width:100%" onclick="closeCompletionModal()">Keep Reading</button>
+  </div>
+</div>
+
 <!-- Scripts -->
+<script src="epub.js"></script>
 <script src="auth.js"></script>
 <script src="billing.js"></script>
 <script src="sync.js"></script>

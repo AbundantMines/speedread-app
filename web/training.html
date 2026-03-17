@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0a">
+<title>SpeedRead — Training Course</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+:root {
+  --bg: #0a0a0a;
+  --bg-card: #141414;
+  --bg-elevated: #1a1a1a;
+  --accent: #c9a84c;
+  --accent-dim: #c9a84c33;
+  --text: #f0e8d8;
+  --text-muted: #f0e8d888;
+  --text-dim: #f0e8d844;
+  --border: #ffffff12;
+  --radius: 10px;
+  --green: #4a9c6d;
+  --red: #c94a4a;
+  --blue: #4a7cc9;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+/* ─── HEADER ─── */
+.training-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+.training-logo { font-size: 20px; font-weight: 800; }
+.training-logo span { color: var(--accent); }
+.back-link { color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color .2s; }
+.back-link:hover { color: var(--accent); }
+
+/* ─── LAYOUT ─── */
+.training-layout { display: flex; min-height: calc(100vh - 57px); }
+.training-main { flex: 1; padding: 24px 32px; max-width: 800px; }
+.training-sidebar { width: 320px; border-left: 1px solid var(--border); background: var(--bg-card); overflow-y: auto; }
+
+/* ─── PROGRESS ─── */
+.progress-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+.progress-day { font-size: 24px; font-weight: 700; }
+.progress-stats-inline { display: flex; gap: 12px; }
+.streak-badge, .xp-badge {
+  font-size: 13px; padding: 4px 10px; border-radius: 20px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+}
+.progress-bar-container {
+  height: 8px; background: var(--bg-elevated); border-radius: 4px; overflow: hidden; margin-bottom: 6px;
+}
+.progress-bar-fill {
+  height: 100%; background: linear-gradient(90deg, var(--accent), #e8c84c);
+  border-radius: 4px; transition: width .6s ease;
+}
+.progress-pct { font-size: 12px; color: var(--text-muted); }
+
+/* ─── TODAY CARD ─── */
+#today-card {
+  background: var(--bg-card); border: 2px solid var(--accent); border-radius: var(--radius);
+  padding: 28px; margin: 24px 0;
+}
+.today-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--accent); margin-bottom: 8px; }
+.today-title { font-size: 22px; font-weight: 700; margin-bottom: 12px; }
+.today-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.type-badge {
+  font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 600;
+}
+.duration-badge { font-size: 12px; color: var(--text-muted); }
+.today-tip { font-size: 13px; color: var(--accent); margin-top: 8px; padding: 8px 12px; background: var(--accent-dim); border-radius: 6px; }
+.today-theory-preview { font-size: 14px; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px; }
+
+/* ─── STATS ROW ─── */
+#stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 24px; }
+.stat-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; text-align: center;
+}
+.stat-value { font-size: 28px; font-weight: 800; color: var(--accent); }
+.stat-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .5px; }
+
+/* ─── BUTTONS ─── */
+.btn { background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border); padding: 10px 20px; border-radius: var(--radius); cursor: pointer; font-size: 14px; font-weight: 600; transition: all .2s; }
+.btn:hover { border-color: var(--accent); }
+.btn-primary { background: var(--accent); color: #0a0a0a; border-color: var(--accent); width: 100%; font-size: 16px; padding: 14px; }
+.btn-primary:hover { background: #d4b45a; }
+.btn-start { margin-top: 8px; }
+
+/* ─── CURRICULUM SIDEBAR ─── */
+.curriculum-header { padding: 20px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 15px; }
+#curriculum-list { padding: 8px; }
+.week-divider {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--accent); padding: 16px 12px 8px; font-weight: 700;
+  border-top: 1px solid var(--border); margin-top: 4px;
+}
+.week-divider:first-child { border-top: none; margin-top: 0; }
+.curriculum-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: var(--radius); margin-bottom: 2px;
+  transition: background .15s; border: 2px solid transparent;
+}
+.curriculum-item.complete { cursor: pointer; }
+.curriculum-item.complete:hover { background: var(--bg-elevated); }
+.curriculum-item.current { border-color: var(--accent); background: var(--accent-dim); cursor: pointer; }
+.curriculum-item.locked { opacity: 0.4; cursor: default; }
+.ci-icon { font-size: 16px; flex-shrink: 0; }
+.ci-title { font-size: 13px; font-weight: 500; }
+.ci-meta { font-size: 11px; color: var(--text-muted); }
+
+/* ─── LESSON OVERLAY ─── */
+#lesson-overlay {
+  position: fixed; inset: 0; background: var(--bg); z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .3s;
+}
+#lesson-overlay.active { opacity: 1; pointer-events: all; }
+#lesson-content {
+  width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto;
+  padding: 32px; margin: 20px;
+}
+
+/* ─── LESSON PHASES ─── */
+.lesson-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.lesson-day-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); }
+.btn-close { background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 4px 8px; }
+.btn-close:hover { color: var(--text); }
+.lesson-title { font-size: 28px; font-weight: 800; margin-bottom: 12px; }
+.theory-text { font-size: 16px; line-height: 1.7; color: var(--text); margin: 20px 0 24px; }
+.theory-tip { font-size: 14px; color: var(--accent); padding: 12px 16px; background: var(--accent-dim); border-radius: 8px; margin-bottom: 24px; }
+
+/* ─── WPM TEST ─── */
+.drill-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5; }
+.wpm-passage {
+  font-size: 16px; line-height: 1.8; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; margin-bottom: 20px; max-height: 400px; overflow-y: auto;
+}
+.wpm-controls { display: flex; align-items: center; gap: 16px; }
+.wpm-timer { font-size: 18px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.wpm-result { text-align: center; padding: 32px 0; }
+.wpm-big { font-size: 72px; font-weight: 800; color: var(--accent); }
+.wpm-label { font-size: 16px; color: var(--text-muted); margin-top: 4px; }
+.wpm-improvement { font-size: 18px; margin-top: 12px; color: var(--text-muted); }
+.wpm-improvement.positive { color: var(--green); }
+
+/* ─── RSVP ─── */
+.rsvp-phase { text-align: center; }
+.rsvp-speed-label { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+.rsvp-display {
+  font-size: 48px; font-weight: 700; min-height: 120px; display: flex;
+  align-items: center; justify-content: center; background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.rsvp-progress-bar { height: 4px; background: var(--bg-elevated); border-radius: 2px; margin-bottom: 20px; overflow: hidden; }
+.rsvp-progress-fill { height: 100%; background: var(--accent); transition: width .1s linear; }
+
+/* ─── QUIZ ─── */
+.quiz-question { margin-bottom: 24px; }
+.quiz-q { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+.quiz-option {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+  margin-bottom: 6px; cursor: pointer; transition: border-color .2s; font-size: 14px;
+}
+.quiz-option:hover { border-color: var(--accent); }
+.quiz-option input { accent-color: var(--accent); }
+.quiz-result { text-align: center; padding: 24px 0; }
+.quiz-score { font-size: 48px; font-weight: 800; color: var(--accent); }
+.quiz-pct { font-size: 16px; color: var(--text-muted); margin: 4px 0 16px; }
+
+/* ─── COMPLETE ─── */
+.complete-phase, .result-phase, .certificate-phase { text-align: center; }
+.complete-icon { font-size: 64px; margin-bottom: 16px; }
+.drill-complete-icon { font-size: 64px; margin-bottom: 16px; }
+.drill-complete-msg { color: var(--text-muted); margin-bottom: 24px; }
+.xp-earned { font-size: 20px; color: var(--accent); font-weight: 700; margin: 8px 0; }
+.streak-msg { font-size: 16px; color: #ff6b35; margin-bottom: 16px; }
+.next-preview {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; margin: 24px 0; text-align: left;
+}
+.next-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 4px; }
+.next-title { font-size: 15px; font-weight: 600; }
+.next-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* ─── CERTIFICATE ─── */
+.cert-wrapper { margin: 16px 0; }
+#cert-canvas { width: 100%; max-width: 800px; border-radius: var(--radius); border: 1px solid var(--border); }
+
+/* ─── MOBILE ─── */
+@media (max-width: 900px) {
+  .training-layout { flex-direction: column; }
+  .training-sidebar { width: 100%; border-left: none; border-top: 1px solid var(--border); max-height: 50vh; }
+  .training-main { padding: 16px; }
+  #stats-row { grid-template-columns: repeat(2, 1fr); }
+  .wpm-big { font-size: 48px; }
+  .rsvp-display { font-size: 36px; min-height: 80px; }
+}
+@media (max-width: 480px) {
+  #stats-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-value { font-size: 22px; }
+  #today-card { padding: 20px; }
+  .today-title { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+
+<header class="training-header">
+  <div class="training-logo">⚡ <span>SpeedRead</span> Training</div>
+  <a href="app.html" class="back-link">← Back to Reader</a>
+</header>
+
+<div class="training-layout">
+  <div class="training-main">
+    <div id="progress-header"></div>
+    <div id="today-card"></div>
+    <div id="stats-row"></div>
+  </div>
+  <div class="training-sidebar">
+    <div class="curriculum-header">📋 28-Day Curriculum</div>
+    <div id="curriculum-list"></div>
+  </div>
+</div>
+
+<div id="lesson-overlay">
+  <div id="lesson-content"></div>
+</div>
+
+<script src="training.js"></script>
+</body>
+</html>
