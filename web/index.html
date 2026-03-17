@@ -185,13 +185,17 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
 <section id="wpm-test">
 <div class="container">
   <h2 class="section-title">Test your reading speed — free</h2>
-  <p class="section-sub">Read the passage below as fast as you comfortably can, then click Done.</p>
+  <p class="section-sub">Read the passage below at your natural pace — it explains exactly how this works. Click Done when you finish.</p>
   <div class="wpm-card">
     <div id="wpm-pre" style="text-align:center">
       <button class="btn btn-gold" onclick="startWpm()">Start Reading</button>
     </div>
     <div class="wpm-passage" id="wpm-passage">
-      It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of Light, it was the season of Darkness, it was the spring of hope, it was the winter of despair. We had everything before us, we had nothing before us, we were all going direct to Heaven, we were all going direct the other way. In short, the period was so far like the present period, that some of its noisiest authorities insisted on its being received, for good or for evil, in the superlative degree of comparison only. There were a king with a large jaw and a queen with a plain face, on the throne of England; there were a king with a large jaw and a queen with a fair face, on the throne of France. In both countries it was clearer than crystal to the lords of the State preserves of loaves and fishes, that things in general were settled for ever. It was the year of Our Lord one thousand seven hundred and seventy-five. Spiritual revelations were conceded to England at that favoured period, as at this. Not merely combating worldly wants and concerns, but mighty messages thundered through the nation with conviction. The time produced everlasting change in the hearts and the minds of the people, who rallied together with purpose and unyielding determination to forge a path toward a more just and more equitable future for all who would come after them. They believed in progress. They believed in each other. And so they pressed on, word by word, page by page, chapter by chapter, into the great unknown that lay ahead.
+      Most people read at the same speed they learned to read as a child. Between third and fifth grade, the brain settles into a pace — comfortable, reliable, and frozen there for the next several decades. Nobody teaches you to go faster. Nobody tells you the ceiling is far higher than you think.<br><br>
+      The average adult reads around 238 words per minute. That sounds reasonable until you do the math. A typical nonfiction book holds about 70,000 words. At your current pace, that is nearly five hours of uninterrupted reading. Most people never finish the books they start — not for lack of interest, but because the time cost feels impossible.<br><br>
+      RSVP stands for Rapid Serial Visual Presentation. Instead of your eyes scanning across a line, words appear one at a time, precisely centered in your field of vision. Your gaze stays fixed. There is no backtracking, no losing your place, no drifting between lines. Freed from the mechanics of eye movement, your brain directs all of its energy toward meaning.<br><br>
+      The surprising thing is how quickly the rhythm becomes natural. Most first-time users feel a flicker of discomfort. By the second session, something begins to click. Within two weeks of ten-minute daily practice, the average user reads thirty to forty percent faster with no measurable drop in comprehension.<br><br>
+      The skill is learnable. The ceiling is higher than you think. And every minute you recover belongs entirely to you.
     </div>
     <div class="wpm-actions">
       <button class="btn btn-gold" id="wpm-done-btn" onclick="finishWpm()" style="display:none">Done Reading</button>
@@ -207,7 +211,7 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
       <!-- RSVP POTENTIAL DEMO -->
       <div id="rsvp-potential" style="display:none;margin-top:48px;text-align:center;border-top:1px solid var(--border);padding-top:40px;">
         <h3 style="font-size:1.25rem;font-weight:700;margin-bottom:8px;">See what you could feel like in 30 days</h3>
-        <p style="color:var(--text-muted);font-size:.95rem;margin-bottom:28px;">Same passage. Three speeds. No tricks — just you, trained.</p>
+        <p style="color:var(--text-muted);font-size:.95rem;margin-bottom:28px;">The passage you just read — now in RSVP. You already know the words, so follow the meaning, not the speed.</p>
         <div class="speed-tabs">
           <button class="speed-tab" id="tab-current" onclick="setDemoSpeed('current')">
             Your speed now<span class="tab-wpm" id="tab-current-wpm">— WPM</span>
@@ -451,7 +455,7 @@ function startWpm(){
 }
 function finishWpm(){
   const seconds=(Date.now()-wpmStart)/1000;
-  const wpm=Math.round(250/(seconds/60));
+  const wpm=Math.round(241/(seconds/60));
   document.getElementById('wpm-passage').style.display='none';
   document.getElementById('wpm-done-btn').style.display='none';
   const r=document.getElementById('wpm-result');
@@ -473,7 +477,7 @@ function finishWpm(){
 }
 
 /* RSVP POTENTIAL DEMO */
-const DEMO_WORDS="It was the best of times it was the worst of times it was the age of wisdom it was the age of foolishness it was the epoch of belief it was the epoch of incredulity it was the season of Light it was the season of Darkness it was the spring of hope it was the winter of despair We had everything before us we had nothing before us we were all going direct to Heaven we were all going direct the other way They believed in progress They believed in each other And so they pressed on word by word page by page into the great unknown that lay ahead".split(' ');
+const DEMO_WORDS="Most people read at the same speed they learned to read as a child. Between third and fifth grade, the brain settles into a pace — comfortable, reliable, and frozen there for the next several decades. Nobody teaches you to go faster. Nobody tells you the ceiling is far higher than you think. The average adult reads around 238 words per minute. That sounds reasonable until you do the math. A typical nonfiction book holds about 70,000 words. At your current pace, that is nearly five hours of uninterrupted reading. Most people never finish the books they start — not for lack of interest, but because the time cost feels impossible. RSVP stands for Rapid Serial Visual Presentation. Instead of your eyes scanning across a line, words appear one at a time, precisely centered in your field of vision. Your gaze stays fixed. There is no backtracking, no losing your place, no drifting between lines. Freed from the mechanics of eye movement, your brain directs all of its energy toward meaning. The surprising thing is how quickly the rhythm becomes natural. Most first-time users feel a flicker of discomfort. By the second session, something begins to click. Within two weeks of ten-minute daily practice, the average user reads thirty to forty percent faster with no measurable drop in comprehension. The skill is learnable. The ceiling is higher than you think. And every minute you recover belongs entirely to you.".split(' ');
 const DEMO_MESSAGES={
   current:'This is your current reading speed in RSVP format. Notice something: no backtracking, no re-reading. Many people find RSVP at their own pace already feels more focused than traditional reading.',
   week2:'Most people hit this speed after just 2 weeks of 10-minute daily sessions. Take a breath and let the words wash over you — it gets comfortable faster than you think.',
