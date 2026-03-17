@@ -38,15 +38,7 @@ nav .container{display:flex;align-items:center;justify-content:space-between}
 .rsvp-demo{margin:48px auto 0;max-width:420px;background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:48px 24px;position:relative;overflow:hidden}
 .rsvp-demo .word{font-size:2.8rem;font-weight:700;color:var(--accent);text-align:center;height:3.4rem;display:flex;align-items:center;justify-content:center}
 .rsvp-demo .wpm-label{text-align:center;color:var(--text-muted);font-size:.8rem;margin-top:12px}
-.rsvp-word{animation:rsvp-cycle 3s steps(1) infinite}
-.rsvp-word span{display:none}
-.rsvp-word span:nth-child(1){animation:show-word 3s steps(1) infinite;animation-delay:0s}
-.rsvp-word span:nth-child(2){animation:show-word 3s steps(1) infinite;animation-delay:.5s}
-.rsvp-word span:nth-child(3){animation:show-word 3s steps(1) infinite;animation-delay:1s}
-.rsvp-word span:nth-child(4){animation:show-word 3s steps(1) infinite;animation-delay:1.5s}
-.rsvp-word span:nth-child(5){animation:show-word 3s steps(1) infinite;animation-delay:2s}
-.rsvp-word span:nth-child(6){animation:show-word 3s steps(1) infinite;animation-delay:2.5s}
-@keyframes show-word{0%{display:inline}16.66%{display:none}}
+.rsvp-word{transition:opacity 0.08s ease}
 
 /* SECTION COMMON */
 section{padding:80px 0}
@@ -170,9 +162,7 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
   </div>
   <p class="social-proof">Join 10,000+ readers improving their speed</p>
   <div class="rsvp-demo">
-    <div class="word rsvp-word">
-      <span>The</span><span>quick</span><span>brown</span><span>fox</span><span>jumps</span><span>over</span>
-    </div>
+    <div class="word rsvp-word" id="rsvp-preview-word">the</div>
     <div class="wpm-label">RSVP preview · 120 WPM</div>
   </div>
 </div>
@@ -398,6 +388,19 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
 </footer>
 
 <script>
+// RSVP landing page preview — 120 WPM = 500ms per word
+(function(){
+  var words="The quick brown fox jumps over the lazy dog Speed reading trains your brain to absorb words faster with full comprehension".split(" ");
+  var el=document.getElementById('rsvp-preview-word');
+  var i=0;
+  if(!el)return;
+  el.textContent=words[0];
+  setInterval(function(){
+    el.style.opacity='0';
+    setTimeout(function(){i=(i+1)%words.length;el.textContent=words[i];el.style.opacity='1';},80);
+  },500);
+})();
+
 /* WPM TEST */
 let wpmStart;
 function startWpm(){
