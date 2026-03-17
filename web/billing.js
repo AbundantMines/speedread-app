@@ -80,14 +80,14 @@ function showUpgradeSuccess() {
   launchConfetti();
   // Banner
   const banner = document.createElement('div');
-  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:16px;background:linear-gradient(135deg,#c9a84c,#d4ad55);color:#000;text-align:center;font-weight:700;font-size:18px;z-index:3001;animation:slideDown 0.5s ease';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:16px;background:linear-gradient(135deg,#38bdf8,#7dd3fc);color:#000;text-align:center;font-weight:700;font-size:18px;z-index:3001;animation:slideDown 0.5s ease';
   banner.textContent = '🎉 You\'re now Pro! Unlimited speed reading unlocked.';
   document.body.appendChild(banner);
   setTimeout(() => banner.remove(), 6000);
 }
 
 function launchConfetti() {
-  const colors = ['#c9a84c', '#22c55e', '#e63946', '#3b82f6', '#f59e0b', '#8b5cf6'];
+  const colors = ['#38bdf8', '#22c55e', '#e63946', '#3b82f6', '#f59e0b', '#8b5cf6'];
   for (let i = 0; i < 60; i++) {
     const piece = document.createElement('div');
     piece.className = 'confetti-piece';

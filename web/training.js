@@ -189,7 +189,7 @@ if (state._baselineCorrupted) saveState(state);
 // ─── UI Rendering ───
 function getTypeBadge(type) {
   const colors = {
-    'assessment': { bg: '#c9a84c33', text: '#c9a84c', label: '📊 Assessment' },
+    'assessment': { bg: 'rgba(56,189,248,0.12)', text: '#38bdf8', label: '📊 Assessment' },
     'theory+drill': { bg: '#4a9c6d33', text: '#4a9c6d', label: '📖 Theory + Drill' },
     'drill': { bg: '#c94a4a33', text: '#c94a4a', label: '🏋️ Drill' },
     'theory': { bg: '#4a7cc933', text: '#4a7cc9', label: '📖 Theory' },
@@ -222,7 +222,7 @@ function renderCorruptionBanner(msg) {
   if (!banner) {
     banner = document.createElement('div');
     banner.id = 'baseline-banner';
-    banner.style.cssText = 'background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.4);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:flex-start;gap:12px;font-size:13px;line-height:1.6';
+    banner.style.cssText = 'background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:flex-start;gap:12px;font-size:13px;line-height:1.6';
     const main = document.querySelector('.training-main');
     if (main) main.insertBefore(banner, main.firstChild);
   }
@@ -852,19 +852,19 @@ function drawCertificate(improvement) {
   ctx.fillRect(0, 0, 800, 500);
 
   // Gold border
-  ctx.strokeStyle = '#c9a84c';
+  ctx.strokeStyle = '#38bdf8';
   ctx.lineWidth = 3;
   ctx.strokeRect(20, 20, 760, 460);
   ctx.strokeRect(30, 30, 740, 440);
 
   // Title
-  ctx.fillStyle = '#c9a84c';
+  ctx.fillStyle = '#38bdf8';
   ctx.font = 'bold 36px Georgia, serif';
   ctx.textAlign = 'center';
   ctx.fillText('⚡ SpeedRead Certified', 400, 90);
 
   // Divider
-  ctx.strokeStyle = '#c9a84c44';
+  ctx.strokeStyle = 'rgba(56,189,248,0.27)';
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(150, 110); ctx.lineTo(650, 110); ctx.stroke();
 
@@ -883,7 +883,7 @@ function drawCertificate(improvement) {
   ctx.fillStyle = '#f0e8d8';
   ctx.fillText(`${state.baselineWPM || '?'}`, 220, 300);
   ctx.fillText('→', 400, 300);
-  ctx.fillStyle = '#c9a84c';
+  ctx.fillStyle = '#38bdf8';
   ctx.fillText(`${state.currentWPM || '?'}`, 580, 300);
 
   ctx.font = '14px system-ui, sans-serif';

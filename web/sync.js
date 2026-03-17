@@ -100,7 +100,7 @@ function renderWPMChart(containerId, data) {
   const polyline = points.join(' ');
   const dots = data.map((d, i) => {
     const [x, y] = points[i].split(',');
-    return `<circle cx="${x}" cy="${y}" r="3" fill="#c9a84c"/>`;
+    return `<circle cx="${x}" cy="${y}" r="3" fill="#38bdf8"/>`;
   }).join('');
 
   // Y-axis labels
@@ -116,7 +116,7 @@ function renderWPMChart(containerId, data) {
       ${yLabels}
       <text x="${pad.left + pw/2}" y="${h - 4}" fill="#8a8070" font-size="10" text-anchor="middle">Sessions</text>
       <text x="12" y="${pad.top + ph/2}" fill="#8a8070" font-size="10" text-anchor="middle" transform="rotate(-90,12,${pad.top + ph/2})">WPM</text>
-      <polyline points="${polyline}" fill="none" stroke="#c9a84c" stroke-width="2" stroke-linejoin="round"/>
+      <polyline points="${polyline}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linejoin="round"/>
       ${dots}
     </svg>
   `;

@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SpeedRead">
-<meta name="theme-color" content="#0a0a0a">
+<meta name="theme-color" content="#060d1a">
 <title>SpeedRead — Reader</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/opendyslexic">
@@ -60,7 +60,7 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
   padding: 2px 8px; border-radius: 10px; display: inline-block; margin-top: 2px;
 }
 .plan-free { background: var(--bg-elevated); color: var(--text-muted); }
-.plan-pro { background: rgba(201,168,76,0.2); color: var(--accent); }
+.plan-pro { background: var(--accent-dim); color: var(--accent); }
 .account-logout { color: var(--text-muted); cursor: pointer; font-size: 18px; padding: 4px; }
 .account-logout:hover { color: var(--red); }
 
@@ -84,7 +84,7 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 .font-size-control { display: flex; align-items: center; gap: 3px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
 .size-btn { border: none; background: transparent; color: var(--text-muted); border-radius: 6px; cursor: pointer; font-weight: 700; line-height: 1; padding: 4px 10px; transition: all .15s; }
 .size-btn:hover { color: var(--text); background: rgba(255,255,255,.06); }
-.size-btn.active { background: var(--accent); color: #0a0a0a; }
+.size-btn.active { background: var(--accent); color: #fff; }
 .size-btn.sm { font-size: 11px; }
 .size-btn.md { font-size: 14px; }
 .size-btn.lg { font-size: 18px; }
@@ -102,7 +102,7 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
   padding: 56px 32px; text-align: center; cursor: pointer;
   transition: border-color 0.2s, background 0.2s; position: relative;
 }
-.drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: #161510; }
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: var(--bg-elevated); }
 .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
 .drop-icon { font-size: 40px; margin-bottom: 14px; }
 .drop-title { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
@@ -160,7 +160,7 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
   color: var(--text-muted); line-height: 1.5; display: none; margin-bottom: 20px;
 }
 #context-strip.visible { display: block; }
-#context-strip mark { background: rgba(201,168,76,0.25); color: var(--accent); border-radius: 2px; padding: 0 2px; }
+#context-strip mark { background: rgba(var(--accent-rgb),0.2); color: var(--accent); border-radius: 2px; padding: 0 2px; }
 
 .rsvp-gap { height: 20px; }
 
@@ -228,7 +228,7 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 
 /* ─── COMPREHENSION PRO BADGE ─── */
 .pro-badge {
-  font-size: 10px; background: rgba(201,168,76,0.2); color: var(--accent);
+  font-size: 10px; background: var(--accent-dim); color: var(--accent);
   padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px;
   font-weight: 700; margin-left: 6px;
 }
@@ -236,8 +236,8 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 /* ─── CATCH ME UP ─── */
 .catchup-row { display: flex; align-items: center; gap: 8px; justify-content: center; }
 .btn-catchup {
-  background: rgba(201,168,76,0.12);
-  border: 1px solid rgba(201,168,76,0.3);
+  background: var(--accent-dim);
+  border: 1px solid var(--border-strong);
   color: var(--accent);
   font-size: 13px;
   padding: 8px 16px;
@@ -245,7 +245,7 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
   cursor: pointer;
   transition: all 0.15s;
 }
-.btn-catchup:hover { background: rgba(201,168,76,0.22); border-color: var(--accent); }
+.btn-catchup:hover { background: rgba(var(--accent-rgb),0.2); border-color: var(--accent); }
 
 /* ─── LIBRARY ─── */
 .library-item {
