@@ -81,8 +81,13 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 .topbar-title strong { color: var(--text); font-weight: 500; }
 .topbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
-.font-size-control { display: flex; align-items: center; gap: 4px; }
-.font-size-control button { width: 28px; height: 28px; font-size: 14px; padding: 0; }
+.font-size-control { display: flex; align-items: center; gap: 3px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
+.size-btn { border: none; background: transparent; color: var(--text-muted); border-radius: 6px; cursor: pointer; font-weight: 700; line-height: 1; padding: 4px 10px; transition: all .15s; }
+.size-btn:hover { color: var(--text); background: rgba(255,255,255,.06); }
+.size-btn.active { background: var(--accent); color: #0a0a0a; }
+.size-btn.sm { font-size: 11px; }
+.size-btn.md { font-size: 14px; }
+.size-btn.lg { font-size: 18px; }
 
 /* ─── READER AREA ─── */
 .reader-area {
@@ -139,6 +144,7 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 }
 .word-row {
   display: flex; align-items: baseline; font-family: Georgia, serif;
+  font-size: 72px;
   line-height: 1; white-space: nowrap; position: relative; z-index: 1;
 }
 .word-before { color: #666; min-width: 220px; text-align: right; display: inline-block; }
@@ -263,14 +269,14 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
   }
   .sidebar.open { left: 0; }
   .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
-  .word-row { font-size: 34px !important; }
-  .word-before, .word-after { min-width: 120px !important; }
+  .word-row { font-size: 48px; }
+  .word-before, .word-after { min-width: 120px; }
   .rsvp-window { height: 76px; }
   .play-btn { min-width: 120px; font-size: 15px; padding: 14px 20px; min-height: 50px; }
 }
 @media (max-width: 390px) {
-  .word-row { font-size: 30px !important; }
-  .word-before, .word-after { min-width: 100px !important; }
+  .word-row { font-size: 40px; }
+  .word-before, .word-after { min-width: 100px; }
   .rsvp-window { height: 68px; }
 }
 </style>
@@ -333,9 +339,10 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
         <option value="system-ui, sans-serif">System UI</option>
         <option value="'Courier New', monospace">Monospace</option>
       </select>
-      <div class="font-size-control">
-        <button class="btn btn-sm" onclick="changeFontSize(-4)" title="Smaller">A-</button>
-        <button class="btn btn-sm" onclick="changeFontSize(4)" title="Larger">A+</button>
+      <div class="font-size-control" title="Text size">
+        <button class="size-btn sm" id="size-btn-S" onclick="setFontSize('S')">A</button>
+        <button class="size-btn md active" id="size-btn-M" onclick="setFontSize('M')">A</button>
+        <button class="size-btn lg" id="size-btn-L" onclick="setFontSize('L')">A</button>
       </div>
       <button class="btn btn-sm" onclick="toggleTheme()" id="theme-btn" title="Toggle theme">🌙</button>
       <button class="btn btn-sm" onclick="toggleComprehension()" title="Comprehension mode">🧠<span class="pro-badge">PRO</span></button>

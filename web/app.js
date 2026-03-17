@@ -24,7 +24,7 @@ let pageBoundaries = [];
 let currentFile = { name: '', size: 0 };
 let autoSaveTimer = null;
 let sessionStartTime = null;
-let rsvpFontSize = 52;
+let rsvpFontSize = 72;
 
 // ── ORP (Optimal Recognition Point) ──
 const ORP_TABLE = [0,0,0,0,1,1,1,2,2,2,3,3,3,4,4,4];
@@ -186,9 +186,21 @@ function setWPM(val) {
 function onSlider(val) { setWPM(parseInt(val, 10)); }
 
 // ── FONT SIZE ──
+const FONT_SIZES = { S: 48, M: 72, L: 96 };
+function applyFontSize(px) {
+  rsvpFontSize = px;
+  const el = document.getElementById('word-row');
+  if (el) el.style.fontSize = px + 'px';
+  localStorage.setItem('speedread_fontsize', px);
+}
+function setFontSize(key) {
+  applyFontSize(FONT_SIZES[key]);
+  document.querySelectorAll('.size-btn').forEach(function(b) { b.classList.remove('active'); });
+  const btn = document.getElementById('size-btn-' + key);
+  if (btn) btn.classList.add('active');
+}
 function changeFontSize(delta) {
-  rsvpFontSize = Math.max(24, Math.min(80, rsvpFontSize + delta));
-  document.getElementById('word-row').style.fontSize = rsvpFontSize + 'px';
+  applyFontSize(Math.max(32, Math.min(112, rsvpFontSize + delta)));
 }
 
 // ── THEME ──
@@ -901,6 +913,19 @@ window.addEventListener('DOMContentLoaded', () => {
   // Restore font
   const savedFont = localStorage.getItem('speedread_font');
   if (savedFont) { document.getElementById('font-select').value = savedFont; setFont(savedFont); }
+
+  // Restore & apply font size (always apply on load so it's never stuck at browser default)
+  const savedSize = parseInt(localStorage.getItem('speedread_fontsize'), 10);
+  if (savedSize && savedSize >= 32) {
+    applyFontSize(savedSize);
+    // Highlight the matching size button if it matches a preset
+    const matchKey = Object.keys(FONT_SIZES).find(k => FONT_SIZES[k] === savedSize);
+    if (matchKey) { document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active')); const btn = document.getElementById('size-btn-' + matchKey); if (btn) btn.classList.add('active'); }
+  } else {
+    applyFontSize(72);
+    const btn = document.getElementById('size-btn-M');
+    if (btn) btn.classList.add('active');
+  }
 
   // Show streak
   const streakEl = document.getElementById('streak-display');
