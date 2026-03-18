@@ -166,7 +166,9 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 
 /* ─── PROGRESS ─── */
 .progress-section { width: 600px; max-width: 90vw; margin-bottom: 18px; }
-.progress-bar-wrap { width: 100%; height: 4px; background: var(--bg-elevated); border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
+.progress-bar-wrap { width: 100%; height: 12px; background: var(--bg-elevated); border-radius: 6px; overflow: hidden; margin-bottom: 8px; cursor: pointer; transition: height 0.15s; }
+.progress-bar-wrap:hover { height: 16px; }
+.progress-bar-wrap:hover .progress-bar-fill { border-radius: 8px; }
 .progress-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.2s linear; width: 0%; }
 .progress-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); }
 .progress-pct { color: var(--accent); font-weight: 600; }
@@ -246,6 +248,29 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
   transition: all 0.15s;
 }
 .btn-catchup:hover { background: rgba(var(--accent-rgb),0.2); border-color: var(--accent); }
+
+/* ─── JUMP TO POSITION ─── */
+.btn-goto { font-size: 13px; padding: 8px 12px; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text); border-radius: var(--radius); cursor: pointer; white-space: nowrap; transition: border-color 0.15s, background 0.15s; }
+.btn-goto:hover { border-color: var(--accent); background: rgba(var(--accent-rgb),0.1); }
+.jump-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+.jump-tab { flex: 1; padding: 10px 8px; background: none; border: none; color: var(--text-muted); font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; }
+.jump-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.jump-panel { display: none; flex-direction: column; gap: 14px; }
+.jump-panel.active { display: flex; }
+.jump-input-row { display: flex; gap: 10px; align-items: flex-end; }
+.jump-input-row input { flex: 1; padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 15px; }
+.jump-input-row input:focus { outline: none; border-color: var(--accent); }
+.jump-hint { font-size: 12px; color: var(--text-muted); margin-top: -8px; }
+.jump-photo-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border: 2px dashed var(--border); border-radius: var(--radius); padding: 28px 20px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.jump-photo-drop:hover { border-color: var(--accent); background: rgba(var(--accent-rgb),0.06); }
+.jump-photo-drop input[type=file] { display: none; }
+.jump-photo-icon { font-size: 36px; }
+.jump-photo-label { font-size: 14px; font-weight: 500; }
+.jump-photo-sub { font-size: 12px; color: var(--text-muted); text-align: center; }
+.jump-photo-preview { max-width: 100%; max-height: 140px; border-radius: 8px; object-fit: cover; display: none; }
+.jump-status { font-size: 13px; color: var(--text-muted); min-height: 20px; text-align: center; }
+.jump-wpp-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-muted); }
+.jump-wpp-row input { width: 68px; padding: 7px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; text-align: center; }
 
 /* ─── LIBRARY ─── */
 .library-item {
@@ -405,7 +430,7 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
       <div class="rsvp-gap" id="rsvp-gap"></div>
 
       <div class="progress-section">
-        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill"></div></div>
+        <div class="progress-bar-wrap" id="progress-bar-wrap" onclick="seekByProgressClick(event)" title="Click to jump to position"><div class="progress-bar-fill" id="progress-fill"></div></div>
         <div class="progress-info">
           <span id="progress-pos">Word 0 / 0</span>
           <span class="progress-pct" id="progress-pct">0%</span>
@@ -421,6 +446,7 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
           <button class="btn btn-jump" onclick="jumpWords(10)" title="Fwd 10">►</button>
           <button class="btn btn-jump" onclick="jumpWords(100)" title="Fwd 100">►►</button>
           <button class="btn btn-sm" onclick="seekTo(0)" title="Restart">⟲</button>
+          <button class="btn btn-goto" onclick="showJumpModal()" title="Jump to word, page, or photo">🎯 Go to…</button>
         </div>
         <div class="catchup-row">
           <button class="btn btn-catchup" onclick="catchMeUp(30)">↩ Last 30s</button>
@@ -556,6 +582,59 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 </div>
 
 <div id="toast-container"></div>
+
+<!-- JUMP TO POSITION MODAL -->
+<div class="modal-overlay hidden" id="jump-modal" onclick="if(event.target===this)hideJumpModal()">
+  <div class="modal" style="max-width:440px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h2 style="font-size:20px;margin:0">Jump to Position</h2>
+      <button class="btn btn-sm" onclick="hideJumpModal()" style="font-size:18px;padding:4px 8px">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Skip to any word, page, or snap a photo of where you left off.</p>
+
+    <div class="jump-tabs">
+      <button class="jump-tab active" id="jtab-word" onclick="switchJumpTab('word')">📍 Word #</button>
+      <button class="jump-tab" id="jtab-page" onclick="switchJumpTab('page')">📄 Page #</button>
+      <button class="jump-tab" id="jtab-photo" onclick="switchJumpTab('photo')">📷 Photo</button>
+    </div>
+
+    <!-- Word tab -->
+    <div class="jump-panel active" id="jpanel-word">
+      <div class="jump-input-row">
+        <input type="number" id="jump-word-input" placeholder="e.g. 12500" min="1" onkeydown="if(event.key==='Enter')jumpToWord()">
+        <button class="btn btn-primary" onclick="jumpToWord()">Go</button>
+      </div>
+      <div class="jump-hint" id="jump-word-hint">Enter a word number (1 – ?)</div>
+    </div>
+
+    <!-- Page tab -->
+    <div class="jump-panel" id="jpanel-page">
+      <div class="jump-input-row">
+        <input type="number" id="jump-page-input" placeholder="e.g. 47" min="1" onkeydown="if(event.key==='Enter')jumpToPage()">
+        <button class="btn btn-primary" onclick="jumpToPage()">Go</button>
+      </div>
+      <div class="jump-wpp-row">
+        <span>Words per page:</span>
+        <input type="number" id="jump-wpp" value="250" min="100" max="500" step="10">
+        <span style="font-size:12px">(paperback ≈ 250, digital ≈ 300)</span>
+      </div>
+      <div class="jump-hint">Page × words-per-page = word position</div>
+    </div>
+
+    <!-- Photo tab -->
+    <div class="jump-panel" id="jpanel-photo">
+      <label class="jump-photo-drop" id="jump-photo-drop" onclick="document.getElementById('jump-photo-input').click()">
+        <input type="file" id="jump-photo-input" accept="image/*" capture="environment" onchange="onJumpPhotoSelected(this)">
+        <div class="jump-photo-icon">📷</div>
+        <div class="jump-photo-label">Tap to snap or upload a photo</div>
+        <div class="jump-photo-sub">Works on physical books, Kindle, any screenshot<br>We'll find the exact word and jump there</div>
+        <img id="jump-photo-preview" class="jump-photo-preview" alt="preview">
+      </label>
+      <div class="jump-status" id="jump-photo-status"></div>
+      <button class="btn btn-primary" id="jump-photo-btn" onclick="findPageByPhoto()" style="display:none">🔍 Find my place</button>
+    </div>
+  </div>
+</div>
 
 <!-- CATCH UP MODAL -->
 <div class="modal-overlay hidden" id="catchup-modal">

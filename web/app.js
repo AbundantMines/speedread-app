@@ -152,6 +152,204 @@ function seekTo(idx) {
   if (wasPlaying) { state = 'playing'; scheduleNext(); }
 }
 
+// ── JUMP TO POSITION ──
+function showJumpModal() {
+  const modal = document.getElementById('jump-modal');
+  if (!modal) return;
+  // Update word-count hint
+  const hint = document.getElementById('jump-word-hint');
+  if (hint) hint.textContent = words.length
+    ? `Enter a word number (1 – ${words.length.toLocaleString()})`
+    : 'Load a document first';
+  modal.classList.remove('hidden');
+}
+
+function hideJumpModal() {
+  const modal = document.getElementById('jump-modal');
+  if (modal) modal.classList.add('hidden');
+  // Reset photo tab
+  const fi = document.getElementById('jump-photo-input');
+  if (fi) fi.value = '';
+  const preview = document.getElementById('jump-photo-preview');
+  if (preview) { preview.style.display = 'none'; preview.src = ''; }
+  const status = document.getElementById('jump-photo-status');
+  if (status) status.textContent = '';
+  const btn = document.getElementById('jump-photo-btn');
+  if (btn) btn.style.display = 'none';
+  const drop = document.getElementById('jump-photo-drop');
+  if (drop) drop.querySelector('.jump-photo-icon').style.display = '';
+}
+
+function switchJumpTab(tab) {
+  ['word','page','photo'].forEach(t => {
+    document.getElementById('jtab-'+t).classList.toggle('active', t === tab);
+    document.getElementById('jpanel-'+t).classList.toggle('active', t === tab);
+  });
+}
+
+function jumpToWord() {
+  if (!words.length) { showToast('Load a document first.'); return; }
+  const v = parseInt(document.getElementById('jump-word-input').value);
+  if (isNaN(v) || v < 1 || v > words.length) {
+    showToast(`Enter a word between 1 and ${words.length.toLocaleString()}.`);
+    return;
+  }
+  seekTo(v - 1);
+  hideJumpModal();
+  showToast(`Jumped to word ${v.toLocaleString()}`);
+}
+
+function jumpToPage() {
+  if (!words.length) { showToast('Load a document first.'); return; }
+  const page = parseInt(document.getElementById('jump-page-input').value);
+  const wpp = parseInt(document.getElementById('jump-wpp').value) || 250;
+  if (isNaN(page) || page < 1) { showToast('Enter a valid page number.'); return; }
+  const wordIdx = Math.min((page - 1) * wpp, words.length - 1);
+  seekTo(wordIdx);
+  hideJumpModal();
+  showToast(`Jumped to page ${page} (~word ${(wordIdx+1).toLocaleString()})`);
+}
+
+function onJumpPhotoSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const preview = document.getElementById('jump-photo-preview');
+  const icon = document.getElementById('jump-photo-drop').querySelector('.jump-photo-icon');
+  const btn = document.getElementById('jump-photo-btn');
+  const status = document.getElementById('jump-photo-status');
+  const url = URL.createObjectURL(file);
+  preview.src = url;
+  preview.style.display = 'block';
+  icon.style.display = 'none';
+  status.textContent = '';
+  btn.style.display = 'block';
+}
+
+async function findPageByPhoto() {
+  if (!words.length) { showToast('Load a document first.'); return; }
+  const fileInput = document.getElementById('jump-photo-input');
+  const file = fileInput.files[0];
+  if (!file) { showToast('Select a photo first.'); return; }
+
+  const status = document.getElementById('jump-photo-status');
+  const btn = document.getElementById('jump-photo-btn');
+  btn.disabled = true;
+  status.textContent = '⏳ Reading image…';
+
+  try {
+    // Convert to base64
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const apiKey = window.OPENAI_API_KEY;
+    if (!apiKey) {
+      status.textContent = '⚠️ AI feature requires an OpenAI API key (coming soon for Pro users).';
+      btn.disabled = false;
+      return;
+    }
+
+    status.textContent = '🔍 Analyzing page text…';
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        max_tokens: 300,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: `data:${file.type};base64,${base64}`, detail: 'high' } },
+            { type: 'text', text: 'Transcribe the first 60 words of body text visible on this page. Return ONLY those words exactly as written, preserving word order. Ignore headers, page numbers, captions, footnotes. Output only the transcribed words, nothing else.' }
+          ]
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    const extracted = data.choices?.[0]?.message?.content?.trim();
+    if (!extracted || extracted.length < 10) {
+      status.textContent = '❌ Could not read text from this image. Try a clearer photo.';
+      btn.disabled = false;
+      return;
+    }
+
+    status.textContent = '📖 Searching document…';
+    const matchIdx = fuzzyFindInDocument(extracted);
+
+    if (matchIdx < 0) {
+      status.textContent = '❌ Page not found in loaded document. Make sure the same book is loaded.';
+      btn.disabled = false;
+      return;
+    }
+
+    status.textContent = `✓ Found at word ${(matchIdx + 1).toLocaleString()} — jumping there…`;
+    setTimeout(() => {
+      seekTo(matchIdx);
+      hideJumpModal();
+      showToast(`📷 Found your page! Jumped to word ${(matchIdx + 1).toLocaleString()}`);
+    }, 900);
+
+  } catch (e) {
+    status.textContent = '❌ Error: ' + (e.message || 'Unknown error');
+    btn.disabled = false;
+  }
+}
+
+function fuzzyFindInDocument(extractedText) {
+  // Normalize: lowercase, strip punctuation, keep words >2 chars
+  const normalize = s => s.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2);
+
+  const needle = normalize(extractedText);
+  if (needle.length < 5) return -1;
+
+  const windowSize = Math.min(needle.length, 40);
+  const needleSet = new Set(needle);
+  const THRESHOLD = 0.40; // 40% word overlap minimum
+
+  let bestScore = 0;
+  let bestIdx = -1;
+
+  // Slide through document in steps of 8 for performance
+  for (let i = 0; i <= words.length - windowSize; i += 8) {
+    const hay = normalize(words.slice(i, i + windowSize + 15).join(' '));
+    let overlap = 0;
+    for (const w of hay) { if (needleSet.has(w)) overlap++; }
+    const score = overlap / needleSet.size;
+    if (score > bestScore) { bestScore = score; bestIdx = i; }
+  }
+
+  // Refine: scan ±20 words around best guess at step 1
+  if (bestIdx >= 0) {
+    const start = Math.max(0, bestIdx - 20);
+    const end = Math.min(words.length - windowSize, bestIdx + 20);
+    for (let i = start; i <= end; i++) {
+      const hay = normalize(words.slice(i, i + windowSize + 5).join(' '));
+      let overlap = 0;
+      for (const w of hay) { if (needleSet.has(w)) overlap++; }
+      const score = overlap / needleSet.size;
+      if (score > bestScore) { bestScore = score; bestIdx = i; }
+    }
+  }
+
+  return bestScore >= THRESHOLD ? bestIdx : -1;
+}
+
+function seekByProgressClick(e) {
+  if (!words.length) return;
+  const bar = e.currentTarget;
+  const rect = bar.getBoundingClientRect();
+  const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  const idx = Math.floor(pct * words.length);
+  seekTo(idx);
+}
+
 // ── PROGRESS ──
 function updateProgress() {
   if (!words.length) return;
