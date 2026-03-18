@@ -905,47 +905,181 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ── PUBLIC DOMAIN LIBRARY (Gutendex) ──
+// ── CURATED LIBRARY — ICP-optimised (public domain, Gutenberg verified) ──
 const FEATURED_BOOKS = [
-  { id: 84, title: 'Frankenstein', author: 'Mary Shelley' },
-  { id: 1342, title: 'Pride and Prejudice', author: 'Jane Austen' },
-  { id: 11, title: 'Alice in Wonderland', author: 'Lewis Carroll' },
-  { id: 2701, title: 'Moby Dick', author: 'Herman Melville' },
-  { id: 1661, title: 'Sherlock Holmes', author: 'Arthur Conan Doyle' },
-  { id: 174, title: 'The Picture of Dorian Gray', author: 'Oscar Wilde' },
-  { id: 98, title: 'A Tale of Two Cities', author: 'Charles Dickens' },
-  { id: 1952, title: 'The Yellow Wallpaper', author: 'Charlotte Perkins Gilman' },
-  { id: 1080, title: 'A Modest Proposal', author: 'Jonathan Swift' },
-  { id: 76, title: 'The Adventures of Tom Sawyer', author: 'Mark Twain' },
+  // ── PHILOSOPHY ──
+  {
+    id: 2680, title: 'Meditations', author: 'Marcus Aurelius',
+    genre: 'philosophy',
+    desc: 'The private journal of a Roman emperor. Read daily by executives and generals for 2,000 years. Probably the highest signal-per-page ratio of anything ever written.'
+  },
+  {
+    id: 10661, title: 'Discourses of Epictetus', author: 'Epictetus',
+    genre: 'philosophy',
+    desc: 'Stoic operating manual for what you control vs. what you don\'t. The slave-turned-philosopher whose students ran empires.'
+  },
+  {
+    id: 150, title: 'The Republic', author: 'Plato',
+    genre: 'philosophy',
+    desc: 'The original framework for justice, governance, and what makes a society function. Still the foundation of every serious political conversation.'
+  },
+  {
+    id: 5116, title: 'Pragmatism', author: 'William James',
+    genre: 'philosophy',
+    desc: 'Truth is what works. James built the philosophy that made America: results over doctrine, action over theory. Essential for operators.'
+  },
+  {
+    id: 4363, title: 'Beyond Good and Evil', author: 'Friedrich Nietzsche',
+    genre: 'philosophy',
+    desc: 'The most challenging critique of conventional morality ever written. Forces you to interrogate every assumption you didn\'t know you had.'
+  },
+
+  // ── ECONOMICS ──
+  {
+    id: 3300, title: 'The Wealth of Nations', author: 'Adam Smith',
+    genre: 'economics',
+    desc: 'The source code of modern capitalism. Written in 1776, still explains more of the world than most economists want to admit.'
+  },
+  {
+    id: 67363, title: 'The Theory of Moral Sentiments', author: 'Adam Smith',
+    genre: 'economics',
+    desc: 'Smith\'s real masterwork — on empathy, markets, and why rational self-interest alone doesn\'t explain human cooperation. The book he was proudest of.'
+  },
+  {
+    id: 833, title: 'The Theory of the Leisure Class', author: 'Thorstein Veblen',
+    genre: 'economics',
+    desc: 'Where status signaling, conspicuous consumption, and social capital were first mapped. Every luxury brand, every prestige purchase — predicted here in 1899.'
+  },
+  {
+    id: 59844, title: 'The Science of Getting Rich', author: 'Wallace D. Wattles',
+    genre: 'economics',
+    desc: 'The 1910 original behind most modern wealth philosophy. Sharper and less padded than its descendants. 100 pages. No filler.'
+  },
+  {
+    id: 8581, title: 'The Art of Money Getting', author: 'P.T. Barnum',
+    genre: 'economics',
+    desc: '1880 business principles from the man who invented the modern entertainment industry. Turns out Barnum had more to teach than just the circus.'
+  },
+
+  // ── STRATEGY ──
+  {
+    id: 132, title: 'The Art of War', author: 'Sun Tzu',
+    genre: 'strategy',
+    desc: '500 BC. Still the operating system behind every serious competitive framework in business, politics, and investing. 13 chapters. No waste.'
+  },
+  {
+    id: 1232, title: 'The Prince', author: 'Niccolò Machiavelli',
+    genre: 'strategy',
+    desc: 'The unfiltered manual on power, leadership, and political reality. Written in 1513 for a Medici prince. Still taught at West Point and Harvard.'
+  },
+  {
+    id: 14033, title: 'Plutarch\'s Lives, Vol. 1', author: 'Plutarch',
+    genre: 'strategy',
+    desc: 'Parallel biographies of the greatest Greeks and Romans — how they rose, led, and fell. The book that shaped Washington, Napoleon, and Jefferson.'
+  },
+
+  // ── BIOGRAPHIES ──
+  {
+    id: 20203, title: 'Autobiography of Benjamin Franklin', author: 'Benjamin Franklin',
+    genre: 'biographies',
+    desc: 'Scientist, inventor, diplomat, founder, printer, entrepreneur. Franklin wrote his own manual on becoming exceptional. One of the most practical memoirs ever written.'
+  },
+  {
+    id: 17976, title: 'Autobiography of Andrew Carnegie', author: 'Andrew Carnegie',
+    genre: 'biographies',
+    desc: 'Immigrant arrives penniless. Builds the largest steel empire in history. Gives it all away. First-person account of what compounding ambition actually looks like.'
+  },
+  {
+    id: 14033, title: 'Lives of the Noble Romans', author: 'Plutarch',
+    genre: 'biographies',
+    desc: 'Caesar, Cicero, Brutus, Pompey — their decisions under pressure, in their own moment. The biography format that invented the genre.'
+  },
+
+  // ── PSYCHOLOGY ──
+  {
+    id: 66048, title: 'The Interpretation of Dreams', author: 'Sigmund Freud',
+    genre: 'psychology',
+    desc: 'The book that created modern psychology. Whether or not you buy the theory, the framework for understanding unconscious motivation is irreplaceable.'
+  },
+  {
+    id: 621, title: 'The Varieties of Religious Experience', author: 'William James',
+    genre: 'psychology',
+    desc: 'The most rigorous empirical study of belief, consciousness, and transformation ever attempted. Why high-performers often report the same internal experiences.'
+  },
 ];
 
-async function loadLibrary() {
+let _activeLibraryGenre = 'all';
+
+function renderBookList(books) {
   const list = document.getElementById('library-list');
   if (!list) return;
-  list.innerHTML = FEATURED_BOOKS.map(b => `
-    <div class="library-item" onclick="openLibraryBook(${b.id}, '${b.title.replace(/'/g, "\\'")}', '${b.author.replace(/'/g, "\\'")}')">
+  if (!books.length) {
+    list.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:10px 0">No books in this category yet.</div>';
+    return;
+  }
+  list.innerHTML = books.map(b => {
+    const safeTitle = b.title.replace(/'/g, "\\'");
+    const safeAuthor = b.author.replace(/'/g, "\\'");
+    const genreLabels = { philosophy:'🧠 Philosophy', economics:'📈 Economics', strategy:'⚔️ Strategy', biographies:'🏆 Biographies', psychology:'🧬 Psychology' };
+    const tag = b.genre && _activeLibraryGenre === 'all' ? `<div class="library-genre-tag">${genreLabels[b.genre] || b.genre}</div>` : '';
+    const desc = b.desc ? `<div class="library-desc">${b.desc}</div>` : '';
+    return `<div class="library-item" onclick="openLibraryBook(${b.id}, '${safeTitle}', '${safeAuthor}')">
+      ${tag}
       <div class="library-title">${b.title}</div>
       <div class="library-author">${b.author}</div>
-    </div>
-  `).join('');
+      ${desc}
+    </div>`;
+  }).join('');
+}
+
+function loadLibrary() {
+  _activeLibraryGenre = 'all';
+  const books = FEATURED_BOOKS.filter((b, i, arr) =>
+    arr.findIndex(x => x.id === b.id) === i  // dedupe by ID
+  );
+  renderBookList(books);
+}
+
+function filterLibrary(genre, chipEl) {
+  _activeLibraryGenre = genre;
+  // Update chip active state
+  document.querySelectorAll('.lib-chip').forEach(c => c.classList.remove('active'));
+  if (chipEl) chipEl.classList.add('active');
+  // Clear search
+  const searchEl = document.getElementById('library-search');
+  if (searchEl) searchEl.value = '';
+  // Filter and render
+  const books = genre === 'all'
+    ? FEATURED_BOOKS.filter((b, i, arr) => arr.findIndex(x => x.id === b.id) === i)
+    : FEATURED_BOOKS.filter(b => b.genre === genre);
+  renderBookList(books);
 }
 
 async function searchLibrary(query) {
   if (query.length < 2) { loadLibrary(); return; }
+  // Clear active chip on search
+  document.querySelectorAll('.lib-chip').forEach(c => c.classList.remove('active'));
   const list = document.getElementById('library-list');
   list.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px">Searching…</div>';
   try {
     const resp = await fetch(`https://gutendex.com/books/?search=${encodeURIComponent(query)}&languages=en&mime_type=text%2Fplain`);
     const data = await resp.json();
-    const books = data.results.slice(0, 8);
+    const books = data.results.slice(0, 10);
     if (!books.length) {
-      list.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px">No results</div>';
+      list.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px">No results — try a different title or author</div>';
       return;
     }
     list.innerHTML = books.map(b => {
       const author = b.authors[0]?.name?.split(',').reverse().join(' ').trim() || 'Unknown';
-      return `<div class="library-item" onclick="openLibraryBook(${b.id}, '${b.title.replace(/'/g, "\\'")}', '${author.replace(/'/g, "\\'")}')">
+      const safeTitle = b.title.replace(/'/g, "\\'");
+      const safeAuthor = author.replace(/'/g, "\\'");
+      // Use our curated description if this book is in FEATURED_BOOKS
+      const featured = FEATURED_BOOKS.find(f => f.id === b.id);
+      const descHtml = featured?.desc ? `<div class="library-desc">${featured.desc}</div>` : '';
+      return `<div class="library-item" onclick="openLibraryBook(${b.id}, '${safeTitle}', '${safeAuthor}')">
         <div class="library-title">${b.title}</div>
         <div class="library-author">${author}</div>
+        ${descHtml}
       </div>`;
     }).join('');
   } catch(e) {
