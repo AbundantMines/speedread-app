@@ -143,6 +143,25 @@ section{padding:80px 0}
 .faq-item.open .faq-a{max-height:300px}
 .faq-a-inner{padding:0 0 20px}
 
+/* ROI STRIP */
+.roi-eyebrow{text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.roi-headline{text-align:center;font-size:clamp(1.55rem,3vw,2.1rem);font-weight:800;margin-bottom:14px;letter-spacing:-.02em}
+.roi-setup{text-align:center;color:var(--text-muted);font-size:.97rem;max-width:580px;margin:0 auto 10px;line-height:1.65}
+.roi-delta{display:inline-block;color:var(--accent);font-weight:600;margin-top:4px}
+.roi-cards{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:28px 0 22px}
+.roi-card{flex:1;min-width:130px;max-width:160px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 12px 16px;text-align:center;transition:border-color .2s,transform .2s}
+.roi-card:hover{border-color:var(--accent);transform:translateY(-3px)}
+.roi-card-accent{border-color:var(--accent);background:rgba(56,189,248,.07)}
+.roi-rate{font-size:1.2rem;font-weight:800;color:var(--text);line-height:1.1;margin-bottom:4px}
+.roi-rate span{font-size:.75rem;color:var(--text-muted);font-weight:500}
+.roi-label{font-size:.7rem;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em}
+.roi-value{font-size:1.35rem;font-weight:800;color:var(--accent);line-height:1}
+.roi-value span{font-size:.75rem;font-weight:500;color:var(--text-muted)}
+.roi-footer{text-align:center;font-size:.9rem;color:var(--text-muted);margin:0}
+.roi-cta-link{color:var(--accent);font-weight:600;text-decoration:none;margin-left:4px}
+.roi-cta-link:hover{text-decoration:underline}
+@media(max-width:600px){.roi-cards{gap:8px}.roi-card{min-width:calc(50% - 8px);max-width:none}.roi-card:last-child{min-width:100%}}
+
 /* FINAL CTA */
 .final-cta{text-align:center;padding:100px 0;background:var(--bg-elevated)}
 .final-cta h2{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;margin-bottom:12px}
@@ -251,6 +270,47 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
       </div>
     </div>
   </div>
+</div>
+</section>
+
+<!-- ROI CALCULATOR STRIP -->
+<section id="roi-strip" style="background:var(--bg-elevated);padding:56px 0">
+<div class="container" style="max-width:860px">
+  <p class="roi-eyebrow">THE COST OF SLOW READING</p>
+  <h2 class="roi-headline">What is not reading faster costing you?</h2>
+  <p class="roi-setup">
+    Someone who reads <strong>50 books a year</strong> spends <strong>243 hours reading</strong> at an average pace.
+    SpeedRead users reach 3× speed. That same stack takes <strong>81 hours</strong>.
+    <span class="roi-delta">162 hours returned to your calendar — every year.</span>
+  </p>
+  <div class="roi-cards">
+    <div class="roi-card">
+      <div class="roi-rate">$50<span>/hr</span></div>
+      <div class="roi-label">CPA · Consultant</div>
+      <div class="roi-value">$8,100<span>/yr</span></div>
+    </div>
+    <div class="roi-card">
+      <div class="roi-rate">$500<span>/hr</span></div>
+      <div class="roi-label">Partner · Director</div>
+      <div class="roi-value">$81K<span>/yr</span></div>
+    </div>
+    <div class="roi-card roi-card-accent">
+      <div class="roi-rate">$5K<span>/hr</span></div>
+      <div class="roi-label">C-Suite · Founder</div>
+      <div class="roi-value">$810K<span>/yr</span></div>
+    </div>
+    <div class="roi-card">
+      <div class="roi-rate">$50K<span>/hr</span></div>
+      <div class="roi-label">Operator · Investor</div>
+      <div class="roi-value">$8.1M<span>/yr</span></div>
+    </div>
+    <div class="roi-card">
+      <div class="roi-rate">$500K<span>/hr</span></div>
+      <div class="roi-label">Principal Capital</div>
+      <div class="roi-value">$81M<span>/yr</span></div>
+    </div>
+  </div>
+  <p class="roi-footer">SpeedRead costs $12/month. The math is not complicated. <a href="app.html" class="roi-cta-link">Start reading faster today →</a></p>
 </div>
 </section>
 
