@@ -249,6 +249,23 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 }
 .btn-catchup:hover { background: rgba(var(--accent-rgb),0.2); border-color: var(--accent); }
 
+/* ─── FEEDBACK ─── */
+.feedback-fab { position: fixed; bottom: 24px; right: 24px; z-index: 900; width: 44px; height: 44px; border-radius: 50%; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-muted); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 12px rgba(0,0,0,.3); transition: border-color .15s, color .15s, transform .15s; }
+.feedback-fab:hover { border-color: var(--accent); color: var(--accent); transform: scale(1.08); }
+.feedback-cats { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.fb-cat { padding: 5px 11px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); color: var(--text-muted); font-size: 11px; font-weight: 600; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+.fb-cat:hover { border-color: var(--accent); color: var(--text); }
+.fb-cat.active { background: var(--accent); border-color: var(--accent); color: #000; }
+.feedback-stars { display: flex; gap: 4px; margin-bottom: 14px; }
+.fb-star { font-size: 22px; cursor: pointer; color: var(--border); transition: color .1s; line-height: 1; }
+.fb-star.lit { color: #fbbf24; }
+.feedback-textarea { width: 100%; min-height: 100px; padding: 11px 13px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.55; resize: vertical; font-family: inherit; box-sizing: border-box; }
+.feedback-textarea:focus { outline: none; border-color: var(--accent); }
+.feedback-email-row { margin-bottom: 14px; }
+.feedback-email-row input { width: 100%; padding: 9px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; box-sizing: border-box; }
+.feedback-email-row input:focus { outline: none; border-color: var(--accent); }
+.feedback-success { text-align: center; padding: 16px 0; display: none; }
+
 /* ─── TRIAL BANNER ─── */
 .trial-banner { background: linear-gradient(90deg, rgba(56,189,248,.15), rgba(56,189,248,.06)); border: 1px solid rgba(56,189,248,.35); border-radius: 8px; padding: 7px 12px; font-size: 11px; color: var(--accent); text-align: center; margin: 0 0 8px; display: none; }
 
@@ -618,6 +635,56 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 </div>
 
 <div id="toast-container"></div>
+
+<!-- FEEDBACK FAB -->
+<button class="feedback-fab" onclick="showFeedbackModal()" title="Share feedback">💬</button>
+
+<!-- FEEDBACK MODAL -->
+<div class="modal-overlay hidden" id="feedback-modal" onclick="if(event.target===this)closeFeedbackModal()">
+  <div class="modal" style="max-width:400px">
+
+    <div id="feedback-form-wrap">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="font-size:18px;margin:0">Share feedback</h2>
+        <button class="btn btn-sm" onclick="closeFeedbackModal()" style="font-size:16px;padding:4px 8px">✕</button>
+      </div>
+
+      <div class="feedback-cats" id="feedback-cats">
+        <button class="fb-cat active" onclick="setFeedbackCat(this,'bug')">🐛 Bug</button>
+        <button class="fb-cat" onclick="setFeedbackCat(this,'feature')">💡 Feature idea</button>
+        <button class="fb-cat" onclick="setFeedbackCat(this,'ux')">🎨 Design / UX</button>
+        <button class="fb-cat" onclick="setFeedbackCat(this,'general')">💬 General</button>
+      </div>
+
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:6px">Rating (optional)</p>
+      <div class="feedback-stars" id="feedback-stars">
+        <span class="fb-star" data-v="1" onclick="setFeedbackRating(1)">★</span>
+        <span class="fb-star" data-v="2" onclick="setFeedbackRating(2)">★</span>
+        <span class="fb-star" data-v="3" onclick="setFeedbackRating(3)">★</span>
+        <span class="fb-star" data-v="4" onclick="setFeedbackRating(4)">★</span>
+        <span class="fb-star" data-v="5" onclick="setFeedbackRating(5)">★</span>
+      </div>
+
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:6px">What's on your mind?</p>
+      <textarea class="feedback-textarea" id="feedback-text" placeholder="Tell us what's working, what's broken, or what you wish existed…"></textarea>
+
+      <div class="feedback-email-row" style="margin-top:10px">
+        <input type="email" id="feedback-email" placeholder="Email (optional — we'll follow up if useful)">
+      </div>
+
+      <div class="lead-err" id="feedback-err" style="margin-bottom:8px"></div>
+
+      <button class="btn btn-primary" style="width:100%;padding:12px;font-weight:700" onclick="submitFeedback()">Send feedback →</button>
+    </div>
+
+    <div class="feedback-success" id="feedback-success">
+      <div style="font-size:40px;margin-bottom:10px">🙏</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px">Thank you.</div>
+      <div style="font-size:13px;color:var(--text-muted)">Every submission is read. This one too.</div>
+    </div>
+
+  </div>
+</div>
 
 <!-- APP LEAD CAPTURE MODAL -->
 <div class="modal-overlay hidden" id="app-lead-modal">

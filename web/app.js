@@ -744,6 +744,89 @@ function updateTrialBanner() {
   }
 }
 
+// ── FEEDBACK ──
+const FEEDBACK_ENDPOINT = null; // set to your endpoint when ready (same as LEAD_ENDPOINT)
+let _feedbackCat    = 'bug';
+let _feedbackRating = 0;
+
+function showFeedbackModal() {
+  const modal = document.getElementById('feedback-modal');
+  if (!modal) return;
+  // Pre-fill email from stored lead if available
+  const lead = getStoredLead?.();
+  const emailEl = document.getElementById('feedback-email');
+  if (emailEl && lead?.email && !emailEl.value) emailEl.value = lead.email;
+  modal.classList.remove('hidden');
+}
+
+function closeFeedbackModal() {
+  document.getElementById('feedback-modal')?.classList.add('hidden');
+  // Reset for next open
+  setTimeout(() => {
+    document.getElementById('feedback-form-wrap').style.display = '';
+    document.getElementById('feedback-success').style.display = 'none';
+    document.getElementById('feedback-text').value = '';
+    document.getElementById('feedback-err').textContent = '';
+    _feedbackRating = 0;
+    document.querySelectorAll('.fb-star').forEach(s => s.classList.remove('lit'));
+    // Reset category to first
+    _feedbackCat = 'bug';
+    document.querySelectorAll('.fb-cat').forEach((c, i) => c.classList.toggle('active', i === 0));
+  }, 300);
+}
+
+function setFeedbackCat(el, cat) {
+  _feedbackCat = cat;
+  document.querySelectorAll('.fb-cat').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function setFeedbackRating(val) {
+  _feedbackRating = val;
+  document.querySelectorAll('.fb-star').forEach(s => {
+    s.classList.toggle('lit', parseInt(s.dataset.v) <= val);
+  });
+}
+
+function submitFeedback() {
+  const text = document.getElementById('feedback-text').value.trim();
+  const err  = document.getElementById('feedback-err');
+  if (!text) { err.textContent = 'Please write something first.'; return; }
+  err.textContent = '';
+
+  const entry = {
+    category: _feedbackCat,
+    rating:   _feedbackRating || null,
+    text,
+    email:    document.getElementById('feedback-email').value.trim() || null,
+    wpm:      wpm || null,
+    doc:      document.getElementById('book-title-text')?.textContent || null,
+    ts:       new Date().toISOString(),
+    ua:       navigator.userAgent.slice(0, 120),
+  };
+
+  // Persist locally
+  try {
+    const all = JSON.parse(localStorage.getItem('speedread_feedback') || '[]');
+    all.unshift(entry);
+    localStorage.setItem('speedread_feedback', JSON.stringify(all.slice(0, 50)));
+  } catch (_) {}
+
+  // Fire to backend if configured
+  if (FEEDBACK_ENDPOINT) {
+    fetch(FEEDBACK_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...entry, source: 'speedread_feedback' })
+    }).catch(() => {});
+  }
+
+  // Show success
+  document.getElementById('feedback-form-wrap').style.display = 'none';
+  document.getElementById('feedback-success').style.display = 'block';
+  setTimeout(closeFeedbackModal, 2200);
+}
+
 function showUpgradeModal(msg) {
   if (msg) {
     document.querySelector('.upgrade-modal-content p').textContent = msg;
