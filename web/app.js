@@ -156,17 +156,31 @@ function seekTo(idx) {
 function showJumpModal() {
   const modal = document.getElementById('jump-modal');
   if (!modal) return;
+  const wpp = parseInt(document.getElementById('jump-wpp')?.value) || 250;
+  // Pre-fill inputs with current position (only if not already set by user)
+  if (words.length && currentIdx > 0) {
+    const wordInput = document.getElementById('jump-word-input');
+    const pageInput = document.getElementById('jump-page-input');
+    if (wordInput) wordInput.value = currentIdx + 1;
+    if (pageInput) pageInput.value = Math.floor(currentIdx / wpp) + 1;
+  }
   // Update word-count hint
-  const hint = document.getElementById('jump-word-hint');
-  if (hint) hint.textContent = words.length
-    ? `Enter a word number (1 – ${words.length.toLocaleString()})`
-    : 'Load a document first';
+  if (words.length) {
+    const totPages = Math.ceil(words.length / wpp);
+    const hint = document.getElementById('jump-word-hint');
+    if (hint) hint.textContent = `Word 1 – ${words.length.toLocaleString()} · Page 1 – ${totPages.toLocaleString()}`;
+  }
   modal.classList.remove('hidden');
 }
 
 function hideJumpModal() {
   const modal = document.getElementById('jump-modal');
   if (modal) modal.classList.add('hidden');
+  // Clear position inputs so they re-populate with current pos on next open
+  const wi = document.getElementById('jump-word-input');
+  if (wi) wi.value = '';
+  const pi = document.getElementById('jump-page-input');
+  if (pi) pi.value = '';
   // Reset photo tab
   const fi = document.getElementById('jump-photo-input');
   if (fi) fi.value = '';
@@ -356,7 +370,10 @@ function updateProgress() {
   const pct = (currentIdx / words.length) * 100;
   document.getElementById('progress-fill').style.width = pct.toFixed(1) + '%';
   document.getElementById('progress-pct').textContent = pct.toFixed(1) + '%';
-  document.getElementById('progress-pos').textContent = `Word ${(currentIdx+1).toLocaleString()} / ${words.length.toLocaleString()}`;
+  const wpp = parseInt(document.getElementById('jump-wpp')?.value) || 250;
+  const curPage = Math.floor(currentIdx / wpp) + 1;
+  const totPages = Math.ceil(words.length / wpp);
+  document.getElementById('progress-pos').textContent = `Word ${(currentIdx+1).toLocaleString()} / ${words.length.toLocaleString()} · Pg ${curPage.toLocaleString()} / ${totPages.toLocaleString()}`;
   const minsLeft = (words.length - currentIdx) / wpm;
   let timeStr;
   if (minsLeft < 1) timeStr = `~${Math.round(minsLeft*60)}s left`;
@@ -573,7 +590,7 @@ function closeBook() {
   setStatus('hidden');
   document.getElementById('progress-fill').style.width = '0%';
   document.getElementById('progress-pct').textContent = '0%';
-  document.getElementById('progress-pos').textContent = 'Word 0 / 0';
+  document.getElementById('progress-pos').textContent = 'Word 0 / 0 · Pg — / —';
   document.getElementById('progress-time').textContent = '—';
   document.getElementById('file-input').value = '';
 }
