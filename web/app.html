@@ -249,6 +249,26 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 }
 .btn-catchup:hover { background: rgba(var(--accent-rgb),0.2); border-color: var(--accent); }
 
+/* ─── TRIAL BANNER ─── */
+.trial-banner { background: linear-gradient(90deg, rgba(56,189,248,.15), rgba(56,189,248,.06)); border: 1px solid rgba(56,189,248,.35); border-radius: 8px; padding: 7px 12px; font-size: 11px; color: var(--accent); text-align: center; margin: 0 0 8px; display: none; }
+
+/* ─── APP LEAD MODAL ─── */
+.lead-modal-icon { font-size: 36px; text-align: center; margin-bottom: 10px; }
+.lead-modal-title { font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 6px; letter-spacing: -.02em; }
+.lead-modal-sub { font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 20px; line-height: 1.55; }
+.lead-form { display: flex; flex-direction: column; gap: 10px; }
+.lead-form input { padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px; width: 100%; }
+.lead-form input:focus { outline: none; border-color: var(--accent); }
+.lead-err { font-size: 12px; color: #f87171; min-height: 16px; text-align: center; }
+.lead-perks { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; padding: 12px 14px; background: var(--bg-elevated); border-radius: var(--radius); }
+.lead-perk { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 7px; }
+.lead-perk::before { content: '✓'; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+.lead-fine { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 6px; }
+.lead-success { text-align: center; padding: 20px 0; display: none; }
+.lead-success-icon { font-size: 48px; margin-bottom: 12px; }
+.lead-success-msg { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.lead-success-sub { font-size: 13px; color: var(--text-muted); }
+
 /* ─── JUMP TO POSITION ─── */
 .btn-goto { font-size: 13px; padding: 8px 12px; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text); border-radius: var(--radius); cursor: pointer; white-space: nowrap; transition: border-color 0.15s, background 0.15s; }
 .btn-goto:hover { border-color: var(--accent); background: rgba(var(--accent-rgb),0.1); }
@@ -354,6 +374,7 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
     <button class="btn" style="width:100%;margin-top:8px;font-size:12px" onclick="loadLibraryPage()">Browse all classics →</button>
   </div>
 
+  <div class="trial-banner" id="trial-banner"></div>
   <div class="sidebar-account" id="account-section">
     <div class="account-avatar" id="account-avatar">?</div>
     <div class="account-info">
@@ -597,6 +618,38 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 </div>
 
 <div id="toast-container"></div>
+
+<!-- APP LEAD CAPTURE MODAL -->
+<div class="modal-overlay hidden" id="app-lead-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="lead-modal-icon">⚡</div>
+    <h2 class="lead-modal-title">Keep reading — free for 24 hours</h2>
+    <p class="lead-modal-sub">You've hit the free limit. Drop your email and we'll unlock unlimited Pro access for the next 24 hours — no card required.<br><span style="color:var(--accent);font-weight:600">More than enough to finish what you started.</span></p>
+
+    <div id="app-lead-form-wrap">
+      <form class="lead-form" onsubmit="submitAppLead(event)">
+        <input type="text" id="app-lead-name" placeholder="First name" autocomplete="given-name" required>
+        <input type="email" id="app-lead-email" placeholder="Email address" autocomplete="email" required>
+        <div class="lead-err" id="app-lead-err"></div>
+        <button type="submit" class="btn btn-primary" style="padding:14px;font-size:15px;font-weight:700">Unlock 24h Pro Access — Free →</button>
+      </form>
+      <div class="lead-perks" style="margin-top:12px">
+        <div class="lead-perk">Unlimited reading — no word limits</div>
+        <div class="lead-perk">Full book library access</div>
+        <div class="lead-perk">Time multiplication playbook in your inbox</div>
+        <div class="lead-perk">No credit card, no commitment</div>
+      </div>
+      <p class="lead-fine">After 24 hours, Pro is $12/month. Cancel anytime.</p>
+      <p style="text-align:center;margin-top:8px"><button class="btn btn-sm" onclick="closeAppLeadModal()" style="color:var(--text-muted);background:none;border:none;font-size:12px;cursor:pointer">No thanks, I'll stay on free</button></p>
+    </div>
+
+    <div class="lead-success" id="app-lead-success">
+      <div class="lead-success-icon">🎉</div>
+      <div class="lead-success-msg">You're in. Pro unlocked for 24 hours.</div>
+      <div class="lead-success-sub">Resuming your reading now…</div>
+    </div>
+  </div>
+</div>
 
 <!-- JUMP TO POSITION MODAL -->
 <div class="modal-overlay hidden" id="jump-modal" onclick="if(event.target===this)hideJumpModal()">

@@ -143,6 +143,24 @@ section{padding:80px 0}
 .faq-item.open .faq-a{max-height:300px}
 .faq-a-inner{padding:0 0 20px}
 
+/* LEAD CAPTURE CARD */
+.lead-capture-card{display:flex;gap:40px;align-items:flex-start;background:var(--bg-card);border:1.5px solid var(--accent);border-radius:20px;padding:40px;box-shadow:0 0 40px rgba(56,189,248,.1)}
+.lead-card-left{flex:1.1}
+.lead-card-right{flex:.9;min-width:260px}
+.lead-card-eyebrow{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.lead-card-title{font-size:clamp(1.3rem,2.5vw,1.75rem);font-weight:800;margin-bottom:10px;letter-spacing:-.02em;line-height:1.2}
+.lead-card-sub{font-size:.9rem;color:var(--text-muted);line-height:1.65;margin-bottom:16px}
+.lead-card-perks{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+.lead-card-perks li{font-size:.85rem;color:var(--text-muted);display:flex;align-items:flex-start;gap:8px}
+.lead-card-perks li::before{content:'✓';color:var(--accent);font-weight:700;flex-shrink:0;margin-top:1px}
+.landing-lead-form{display:flex;flex-direction:column;gap:10px}
+.landing-lead-form input{padding:13px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;width:100%;box-sizing:border-box}
+.landing-lead-form input:focus{outline:none;border-color:var(--accent)}
+.landing-lead-btn{width:100%;padding:14px;font-size:15px;font-weight:700;margin-top:2px}
+.landing-lead-fine{font-size:11px;color:var(--text-muted);text-align:center;margin-top:8px}
+.lead-err{font-size:12px;color:#f87171;min-height:16px}
+@media(max-width:680px){.lead-capture-card{flex-direction:column;gap:24px;padding:28px 22px}.lead-card-right{min-width:0;width:100%}}
+
 /* ROI STRIP */
 .roi-eyebrow{text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
 .roi-headline{text-align:center;font-size:clamp(1.55rem,3vw,2.1rem);font-weight:800;margin-bottom:14px;letter-spacing:-.02em}
@@ -311,6 +329,42 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
     </div>
   </div>
   <p class="roi-footer">SpeedRead costs $12/month. The math is not complicated. <a href="app.html" class="roi-cta-link">Start reading faster today →</a></p>
+</div>
+</section>
+
+<!-- LEAD CAPTURE -->
+<section id="lead-capture" style="padding:0 0 64px">
+<div class="container" style="max-width:720px">
+  <div class="lead-capture-card" id="lead-card">
+    <div class="lead-card-left">
+      <div class="lead-card-eyebrow">FREE · 24-HOUR PRO ACCESS</div>
+      <h2 class="lead-card-title">Try it free. Read anything, unlimited.</h2>
+      <p class="lead-card-sub">Enter your email and we'll unlock full Pro access for 24 hours — no card required. You'll also get our private playbook on multiplying time and moving through life at a different speed.</p>
+      <ul class="lead-card-perks">
+        <li>No word limits — read entire books</li>
+        <li>Full library of 61,000 titles, loaded instantly</li>
+        <li>Time multiplication playbook delivered to your inbox</li>
+        <li>No credit card. No commitment.</li>
+      </ul>
+    </div>
+    <div class="lead-card-right">
+      <div id="landing-lead-form-wrap">
+        <form class="landing-lead-form" onsubmit="submitLandingLead(event)">
+          <input type="text" id="landing-lead-name" placeholder="First name" autocomplete="given-name" required>
+          <input type="email" id="landing-lead-email" placeholder="Email address" autocomplete="email" required>
+          <div class="lead-err" id="landing-lead-err"></div>
+          <button type="submit" class="btn btn-primary landing-lead-btn">Unlock 24h Pro Free →</button>
+        </form>
+        <p class="landing-lead-fine">After 24 hours, Pro is $12/month. Cancel anytime.</p>
+      </div>
+      <div id="landing-lead-success" style="display:none;text-align:center;padding:24px 0">
+        <div style="font-size:44px;margin-bottom:12px">🎉</div>
+        <div style="font-size:17px;font-weight:700;margin-bottom:6px">You're in.</div>
+        <div style="font-size:14px;color:var(--text-muted);margin-bottom:20px">24 hours of Pro access, unlocked.</div>
+        <a href="app.html" class="btn btn-primary" style="display:inline-block">Start reading now →</a>
+      </div>
+    </div>
+  </div>
 </div>
 </section>
 
@@ -635,6 +689,32 @@ function toggleBilling(){
   annual=!annual;
   document.getElementById('billing-toggle').classList.toggle('active',annual);
   document.getElementById('pro-price').innerHTML=annual?'$39.99<span class="period">/yr</span>':'$4.99<span class="period">/mo</span>';
+}
+
+/* LANDING LEAD CAPTURE */
+function submitLandingLead(e){
+  e.preventDefault();
+  const name  = document.getElementById('landing-lead-name').value.trim();
+  const email = document.getElementById('landing-lead-email').value.trim();
+  const err   = document.getElementById('landing-lead-err');
+  if(!name||!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    err.textContent='Please enter a valid name and email.';
+    return;
+  }
+  err.textContent='';
+  // Store trial + lead in localStorage
+  const lead = {name, email, source:'speedread_landing', ts:new Date().toISOString()};
+  const trial = {name, email, started_at:Date.now()};
+  localStorage.setItem('speedread_lead',  JSON.stringify(lead));
+  localStorage.setItem('speedread_trial', JSON.stringify(trial));
+  // Fire to backend endpoint if configured (same constant as sync.js LEAD_ENDPOINT)
+  const ENDPOINT = null; // set to your form endpoint when ready
+  if(ENDPOINT){
+    fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(lead)}).catch(()=>{});
+  }
+  // Show success
+  document.getElementById('landing-lead-form-wrap').style.display='none';
+  document.getElementById('landing-lead-success').style.display='block';
 }
 </script>
 </body>

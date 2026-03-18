@@ -110,7 +110,9 @@ async function signOut() {
 
 // ── Helpers ──
 function isLoggedIn() { return !!currentUser; }
-function isPro() { return userProfile?.plan === 'pro' || userProfile?.plan === 'lifetime'; }
+function isPro() {
+  return userProfile?.plan === 'pro' || userProfile?.plan === 'lifetime' || isEmailTrialActive();
+}
 function getUserDisplayName() {
   return userProfile?.display_name || currentUser?.user_metadata?.display_name || currentUser?.email?.split('@')[0] || 'Reader';
 }

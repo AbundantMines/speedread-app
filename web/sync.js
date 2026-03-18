@@ -152,3 +152,59 @@ function checkFreeTierLimits(wordCount) {
   // before being prompted, handled during playback in scheduleNext()
   return { allowed: true };
 }
+
+// ═══════════════════════════════════════════════════════════════
+// EMAIL TRIAL SYSTEM
+// Set LEAD_ENDPOINT to send leads to a backend when ready:
+//   Formspree:    'https://formspree.io/f/YOUR_FORM_ID'
+//   Apps Script:  'https://script.google.com/macros/s/.../exec'
+//   Supabase fn:  '/functions/v1/capture-lead'
+// ═══════════════════════════════════════════════════════════════
+const TRIAL_KEY = 'speedread_trial';
+const LEAD_KEY  = 'speedread_lead';
+const LEAD_ENDPOINT = null; // → wire up when Supabase/Resend is live
+
+function activateEmailTrial(name, email) {
+  const lead = {
+    name:   name.trim(),
+    email:  email.trim().toLowerCase(),
+    source: 'speedread_trial',
+    ts:     new Date().toISOString()
+  };
+  const trial = { name: lead.name, email: lead.email, started_at: Date.now() };
+  localStorage.setItem(LEAD_KEY,  JSON.stringify(lead));
+  localStorage.setItem(TRIAL_KEY, JSON.stringify(trial));
+  if (LEAD_ENDPOINT) {
+    fetch(LEAD_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(lead)
+    }).catch(() => {});
+  }
+  return trial;
+}
+
+function getEmailTrial() {
+  try { return JSON.parse(localStorage.getItem(TRIAL_KEY)); } catch { return null; }
+}
+
+function isEmailTrialActive() {
+  const t = getEmailTrial();
+  if (!t) return false;
+  return (Date.now() - t.started_at) < 24 * 60 * 60 * 1000;
+}
+
+function getTrialHoursRemaining() {
+  const t = getEmailTrial();
+  if (!t) return 0;
+  const ms = 24 * 60 * 60 * 1000 - (Date.now() - t.started_at);
+  return Math.max(0, Math.ceil(ms / (60 * 60 * 1000)));
+}
+
+function hasSubmittedLead() {
+  return !!localStorage.getItem(LEAD_KEY);
+}
+
+function getStoredLead() {
+  try { return JSON.parse(localStorage.getItem(LEAD_KEY)); } catch { return null; }
+}

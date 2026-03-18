@@ -90,13 +90,16 @@ function pause() {
 function scheduleNext() {
   if (state !== 'playing') return;
 
-  // Free tier: pause at 10,000 words and prompt upgrade
+  // Free tier: pause at 10,000 words — show lead capture first, upgrade second
   if (!isPro() && currentIdx >= FREE_TIER_WORD_CUTOFF) {
     pause();
-    showUpgradeModal(
-      `You've read ${FREE_TIER_WORD_CUTOFF.toLocaleString()} words — great progress! ` +
-      `Upgrade to Pro to keep reading without limits.`
-    );
+    if (!hasSubmittedLead()) {
+      showAppLeadModal();
+    } else if (isEmailTrialActive()) {
+      // Trial somehow expired mid-read but isPro() missed it — shouldn't happen, safety net
+    } else {
+      showUpgradeModal('Your free 24-hour trial has ended. Upgrade to Pro to keep reading without limits.');
+    }
     return;
   }
 
@@ -693,6 +696,54 @@ async function handleAuth() {
 }
 
 // ── UPGRADE MODAL ──
+// ── LEAD CAPTURE (app) ──
+function showAppLeadModal() {
+  document.getElementById('app-lead-modal')?.classList.remove('hidden');
+}
+function closeAppLeadModal() {
+  document.getElementById('app-lead-modal')?.classList.add('hidden');
+}
+
+function submitAppLead(e) {
+  e.preventDefault();
+  const name  = document.getElementById('app-lead-name')?.value?.trim();
+  const email = document.getElementById('app-lead-email')?.value?.trim();
+  if (!name || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    document.getElementById('app-lead-err').textContent = 'Please enter a valid name and email.';
+    return;
+  }
+  document.getElementById('app-lead-err').textContent = '';
+  activateEmailTrial(name, email);
+  // Show success state
+  document.getElementById('app-lead-form-wrap').style.display = 'none';
+  document.getElementById('app-lead-success').style.display = 'block';
+  updateTrialBanner();
+  setTimeout(() => {
+    closeAppLeadModal();
+    document.getElementById('app-lead-form-wrap').style.display = '';
+    document.getElementById('app-lead-success').style.display = 'none';
+    document.getElementById('app-lead-name').value  = '';
+    document.getElementById('app-lead-email').value = '';
+    showToast(`🎉 24h Pro access unlocked, ${name.split(' ')[0]}! Read without limits.`, 5000);
+  }, 1800);
+}
+
+function updateTrialBanner() {
+  const banner = document.getElementById('trial-banner');
+  if (!banner) return;
+  if (isPro() && isEmailTrialActive()) {
+    const h = getTrialHoursRemaining();
+    banner.style.display = 'block';
+    banner.innerHTML = `🎉 <strong>Pro Trial</strong> · ${h}h remaining`;
+  } else if (isEmailTrialActive()) {
+    // Same as above — isPro() should be true but just in case
+    banner.style.display = 'block';
+    banner.innerHTML = `🎉 <strong>Pro Trial</strong> · ${getTrialHoursRemaining()}h remaining`;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
 function showUpgradeModal(msg) {
   if (msg) {
     document.querySelector('.upgrade-modal-content p').textContent = msg;
@@ -1314,6 +1365,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (theme === 'light') { document.documentElement.setAttribute('data-theme', 'light'); document.getElementById('theme-btn').textContent = '☀️'; }
 
   updateAccountUI();
+  updateTrialBanner();
   refreshHistory();
   loadLibrary();
 
