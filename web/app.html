@@ -748,7 +748,7 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
         <input type="number" id="jump-page-input" placeholder="e.g. 47" min="1" onkeydown="if(event.key==='Enter')jumpToPage()">
         <button class="btn btn-primary" onclick="jumpToPage()">Go</button>
       </div>
-      <div class="jump-wpp-row">
+      <div class="jump-wpp-row" id="jump-wpp-row">
         <span>Words per page:</span>
         <input type="number" id="jump-wpp" value="250" min="100" max="500" step="10">
         <span style="font-size:12px">(paperback ≈ 250, digital ≈ 300)</span>

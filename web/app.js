@@ -21,6 +21,32 @@ let wpm = 300;
 let contextVisible = false;
 let timerId = null;
 let pageBoundaries = [];
+
+// ── PAGE BOUNDARY HELPERS ──
+// Returns the PDF page number for a given word index (binary search)
+function getPageFromWordIdx(idx) {
+  if (!pageBoundaries.length) return null;
+  let lo = 0, hi = pageBoundaries.length - 1, result = pageBoundaries[0].page;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (pageBoundaries[mid].startIdx <= idx) { result = pageBoundaries[mid].page; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+  return result;
+}
+
+// Returns the word index for the start of a given PDF page number
+function getWordIdxFromPage(pageNum) {
+  if (!pageBoundaries.length) return null;
+  const entry = pageBoundaries.find(b => b.page === pageNum);
+  return entry != null ? entry.startIdx : null;
+}
+
+// Total pages: from pageBoundaries if PDF, else estimate from wpp
+function getTotalPages(wpp) {
+  if (pageBoundaries.length) return pageBoundaries[pageBoundaries.length - 1].page;
+  return Math.ceil(words.length / (wpp || 250));
+}
 let currentFile = { name: '', size: 0 };
 let autoSaveTimer = null;
 let sessionStartTime = null;
@@ -165,13 +191,23 @@ function showJumpModal() {
     const wordInput = document.getElementById('jump-word-input');
     const pageInput = document.getElementById('jump-page-input');
     if (wordInput) wordInput.value = currentIdx + 1;
-    if (pageInput) pageInput.value = Math.floor(currentIdx / wpp) + 1;
+    if (pageInput) {
+      const currentPage = pageBoundaries.length
+        ? getPageFromWordIdx(currentIdx)
+        : Math.floor(currentIdx / wpp) + 1;
+      pageInput.value = currentPage;
+    }
   }
-  // Update word-count hint
+  // Update word-count / page hint
   if (words.length) {
-    const totPages = Math.ceil(words.length / wpp);
+    const totPages = getTotalPages(wpp);
+    const isPdfPages = pageBoundaries.length > 0;
     const hint = document.getElementById('jump-word-hint');
-    if (hint) hint.textContent = `Word 1 – ${words.length.toLocaleString()} · Page 1 – ${totPages.toLocaleString()}`;
+    if (hint) hint.textContent = `Word 1 – ${words.length.toLocaleString()} · Page 1 – ${totPages.toLocaleString()}${isPdfPages ? ' (PDF pages)' : ' (estimated)'}`;
+
+    // Show/hide the wpp control — only useful for plain-text estimation
+    const wppRow = document.getElementById('jump-wpp-row');
+    if (wppRow) wppRow.style.display = isPdfPages ? 'none' : '';
   }
   modal.classList.remove('hidden');
 }
@@ -219,12 +255,27 @@ function jumpToWord() {
 function jumpToPage() {
   if (!words.length) { showToast('Load a document first.'); return; }
   const page = parseInt(document.getElementById('jump-page-input').value);
-  const wpp = parseInt(document.getElementById('jump-wpp').value) || 250;
   if (isNaN(page) || page < 1) { showToast('Enter a valid page number.'); return; }
-  const wordIdx = Math.min((page - 1) * wpp, words.length - 1);
+
+  let wordIdx;
+  if (pageBoundaries.length) {
+    // PDF: use exact page boundaries
+    const idx = getWordIdxFromPage(page);
+    if (idx === null) {
+      const maxPage = pageBoundaries[pageBoundaries.length - 1].page;
+      showToast(`Page must be between 1 and ${maxPage}.`);
+      return;
+    }
+    wordIdx = idx;
+  } else {
+    // Plain text: estimate from words-per-page
+    const wpp = parseInt(document.getElementById('jump-wpp').value) || 250;
+    wordIdx = Math.min((page - 1) * wpp, words.length - 1);
+  }
+
   seekTo(wordIdx);
   hideJumpModal();
-  showToast(`Jumped to page ${page} (~word ${(wordIdx+1).toLocaleString()})`);
+  showToast(`Jumped to page ${page} (word ${(wordIdx+1).toLocaleString()})`);
 }
 
 function onJumpPhotoSelected(input) {
@@ -374,8 +425,8 @@ function updateProgress() {
   document.getElementById('progress-fill').style.width = pct.toFixed(1) + '%';
   document.getElementById('progress-pct').textContent = pct.toFixed(1) + '%';
   const wpp = parseInt(document.getElementById('jump-wpp')?.value) || 250;
-  const curPage = Math.floor(currentIdx / wpp) + 1;
-  const totPages = Math.ceil(words.length / wpp);
+  const curPage  = pageBoundaries.length ? getPageFromWordIdx(currentIdx) : Math.floor(currentIdx / wpp) + 1;
+  const totPages = getTotalPages(wpp);
   document.getElementById('progress-pos').textContent = `Word ${(currentIdx+1).toLocaleString()} / ${words.length.toLocaleString()} · Pg ${curPage.toLocaleString()} / ${totPages.toLocaleString()}`;
   const minsLeft = (words.length - currentIdx) / wpm;
   let timeStr;
