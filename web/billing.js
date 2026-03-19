@@ -3,13 +3,13 @@
 // ═══════════════════════════════════════════════════════════════
 
 // ── Replace with your Stripe publishable key ──
-const STRIPE_PUBLISHABLE_KEY = 'pk_live_YOUR_KEY'; // Replace with your Stripe publishable key
+const STRIPE_PUBLISHABLE_KEY = 'pk_live_Pnwv4b9mbVYsh02hYPCga4I5';
 
-// ── Stripe Price IDs — set these after creating products in Stripe Dashboard ──
+// ── Stripe Price IDs ──
 const PRICE_IDS = {
-  pro_monthly: 'price_YOUR_MONTHLY_ID',   // $4.99/mo
-  pro_annual:  'price_YOUR_ANNUAL_ID',     // $39.99/yr
-  lifetime:    'price_YOUR_LIFETIME_ID',   // $99 one-time
+  pro_monthly: 'price_1TCnO8FfldkL2s76NGle1oX3',  // $4.99/mo
+  pro_annual:  'price_1TCnO9FfldkL2s760PCk7Xvj',   // $39.99/yr
+  lifetime:    'price_1TCnOAFfldkL2s76iItda4tX',   // $99 one-time
 };
 
 let stripeInstance = null;
