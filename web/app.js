@@ -599,6 +599,7 @@ async function loadPDF(file) {
 function processText(text) {
   words = (typeof text === 'string') ? text.split(/\s+/).filter(w => w.length > 0) : text;
   if (!pageBoundaries.length) pageBoundaries = [{ page: 1, startIdx: 0 }];
+  if (typeof wrTrack === 'function') wrTrack('doc_loaded', { word_count: words.length, wpm_current: wpm });
 
   // Check daily doc limit (word cutoff is handled during playback, not at load)
   const check = checkFreeTierLimits(words.length);
@@ -879,6 +880,7 @@ function submitFeedback() {
 }
 
 function showUpgradeModal(msg) {
+  if (typeof wrTrack === 'function') wrTrack('upgrade_modal_shown', { reason: msg ? msg.slice(0, 80) : 'manual' });
   if (msg) {
     document.querySelector('.upgrade-modal-content p').textContent = msg;
   }
@@ -1433,6 +1435,9 @@ function getStreak() {
 
 // ── COMPLETION MODAL ──
 function showCompletionModal(docTitle, wordsRead, wpmAchieved, durationSeconds) {
+  if (typeof wrTrack === 'function') wrTrack('session_complete', {
+    words_read: wordsRead, wpm: wpmAchieved, duration_sec: Math.round(durationSeconds)
+  });
   document.getElementById('completion-title').textContent = docTitle || 'Reading session complete';
   document.getElementById('comp-wpm').textContent = wpmAchieved;
   document.getElementById('comp-words').textContent = wordsRead.toLocaleString();

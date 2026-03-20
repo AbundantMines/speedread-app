@@ -31,6 +31,9 @@ function initBilling() {
  * @param {'pro_monthly'|'pro_annual'|'lifetime'} plan
  */
 async function openCheckout(plan) {
+  const planPrices = { pro_monthly: 4.99, pro_annual: 39.99, lifetime: 99 };
+  if (typeof wrTrack === 'function') wrTrack('checkout_start', { plan, price: planPrices[plan] || 0 });
+
   if (!stripeInstance) {
     showUpgradeModal();
     return;
