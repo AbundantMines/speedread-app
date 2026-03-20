@@ -1531,4 +1531,13 @@ window.addEventListener('DOMContentLoaded', () => {
     window.history.replaceState({}, '', window.location.pathname);
     setTimeout(() => openCheckout(plan), 500);
   }
+
+  // Auto-open auth modal if ?auth=login
+  if (params.get('auth') === 'login') {
+    window.history.replaceState({}, '', window.location.pathname);
+    setTimeout(() => {
+      const modal = document.getElementById('auth-modal');
+      if (modal) modal.classList.remove('hidden');
+    }, 300);
+  }
 });

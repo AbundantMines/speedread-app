@@ -5,6 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Warpreader — Read 3× Faster. Miss Nothing.</title>
 <meta name="description" content="RSVP speed reading with AI comprehension coaching. Read faster, retain more. Free, web-based, no download required.">
+<!-- Favicon -->
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="shortcut icon" href="favicon.svg">
+<!-- Open Graph -->
+<meta property="og:title" content="Warpreader — Read 3× Faster. Miss Nothing.">
+<meta property="og:description" content="RSVP speed reading with AI comprehension coaching. Read faster, retain more. Free to start, no download required.">
+<meta property="og:url" content="https://warpreader.com">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://warpreader.com/og-image.png">
+<meta property="og:site_name" content="Warpreader">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Warpreader — Read 3× Faster. Miss Nothing.">
+<meta name="twitter:description" content="RSVP speed reading with AI comprehension coaching. Read faster, retain more.">
+<meta name="twitter:image" content="https://warpreader.com/og-image.png">
+<meta name="twitter:site" content="@warpreader">
 <link rel="stylesheet" href="styles.css">
 <style>
 :root{
@@ -219,7 +235,7 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
   <div class="logo"><span>⚡</span> Warpreader</div>
   <button class="hamburger" onclick="document.querySelector('.nav-right').classList.toggle('open')" aria-label="Menu">☰</button>
   <div class="nav-right">
-    <a href="/app.html">Sign in</a>
+    <a href="/app.html?auth=login">Log in</a>
     <button id="theme-btn" onclick="toggleLandingTheme()" title="Toggle theme" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;padding:4px 8px;border-radius:8px;transition:color .2s,background .2s" onmouseover="this.style.background='var(--accent-dim)'" onmouseout="this.style.background='none'">🌙</button>
     <a href="/app.html" class="btn btn-gold">Start free</a>
   </div>
@@ -338,7 +354,7 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
       <div class="roi-value">$81M<span>/yr</span></div>
     </div>
   </div>
-  <p class="roi-footer">Warpreader costs $12/month. The math is not complicated. <a href="app.html" class="roi-cta-link">Start reading faster today →</a></p>
+  <p class="roi-footer">Warpreader Pro is $4.99/month. The math is not complicated. <a href="app.html" class="roi-cta-link">Start reading faster today →</a></p>
 </div>
 </section>
 
@@ -365,7 +381,7 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
           <div class="lead-err" id="landing-lead-err"></div>
           <button type="submit" class="btn btn-primary landing-lead-btn">Unlock 24h Pro Free →</button>
         </form>
-        <p class="landing-lead-fine">After 24 hours, Pro is $12/month. Cancel anytime.</p>
+        <p class="landing-lead-fine">After 24 hours, Pro is $4.99/month. Cancel anytime.</p>
       </div>
       <div id="landing-lead-success" style="display:none;text-align:center;padding:24px 0">
         <div style="font-size:44px;margin-bottom:12px">🎉</div>
@@ -460,7 +476,7 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
         <li>Advanced analytics</li>
         <li>Priority support</li>
       </ul>
-      <a href="/app.html" class="btn btn-gold">Get Pro</a>
+      <a href="/app.html?plan=pro_monthly" id="pro-cta-btn" class="btn btn-gold">Get Pro</a>
     </div>
     <div class="price-card">
       <h3>Lifetime</h3>
@@ -471,7 +487,7 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
         <li>One-time payment</li>
         <li>All future features included</li>
       </ul>
-      <a href="/app.html" class="btn btn-ghost">Get Lifetime</a>
+      <a href="/app.html?plan=lifetime" class="btn btn-ghost">Get Lifetime</a>
     </div>
   </div>
 </div>
@@ -693,12 +709,35 @@ function toggleLandingTheme(){
   localStorage.setItem('speedread_theme',isLight?'dark':'light');
 }
 
+/* AUTO-PLAY RSVP DEMO — show on page load with default avg speeds */
+window.addEventListener('DOMContentLoaded',function(){
+  // Override tab labels to be generic (user hasn't taken the WPM test yet)
+  var potentialSection=document.getElementById('rsvp-potential');
+  if(!potentialSection)return;
+  // Update section heading/sub to default state
+  var h3=potentialSection.querySelector('h3');
+  if(h3)h3.textContent='See how RSVP feels at different speeds';
+  var sub=potentialSection.querySelector('p');
+  if(sub)sub.textContent='Words appear one at a time — your eyes stay fixed. No scanning, no re-reading. Most people feel the rhythm within 30 seconds.';
+  // Update tab labels
+  var tabCurrent=document.getElementById('tab-current');
+  if(tabCurrent){var tn=tabCurrent.childNodes[0];if(tn)tn.textContent='Average reader ';}
+  var tabWeek2=document.getElementById('tab-week2');
+  if(tabWeek2){var tw=tabWeek2.childNodes[0];if(tw)tw.textContent='After 2 weeks ';}
+  var tabMonth1=document.getElementById('tab-month1');
+  if(tabMonth1){var tm=tabMonth1.childNodes[0];if(tm)tm.textContent='After 30 days ';}
+  // Initialize with avg adult reading speed (238 WPM)
+  initRsvpDemo(238);
+});
+
 /* BILLING TOGGLE */
 let annual=false;
 function toggleBilling(){
   annual=!annual;
   document.getElementById('billing-toggle').classList.toggle('active',annual);
   document.getElementById('pro-price').innerHTML=annual?'$39.99<span class="period">/yr</span>':'$4.99<span class="period">/mo</span>';
+  var proBtn=document.getElementById('pro-cta-btn');
+  if(proBtn)proBtn.href=annual?'/app.html?plan=pro_annual':'/app.html?plan=pro_monthly';
 }
 
 /* LANDING LEAD CAPTURE */

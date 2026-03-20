@@ -3,8 +3,8 @@
 // ═══════════════════════════════════════════════════════════════
 
 // ── Replace these with your Supabase project credentials ──
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';           // e.g. https://xyzcompany.supabase.co
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // e.g. eyJhbGciOiJIUzI1NiIs...
+const SUPABASE_URL = 'https://hmacjbgnvljhgvwdzkds.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtYWNqYmdudmxqaGd2d2R6a2RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MDcwODAsImV4cCI6MjA4OTM4MzA4MH0.crS-Y4zEnCmUPM7DBbJvb5nVufgtbEXyW6WpOSBTl2k';
 
 let supabaseClient = null;
 let currentUser = null;
