@@ -261,6 +261,18 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 (function(){var t=localStorage.getItem('speedread_theme');if(t==='light'){document.documentElement.setAttribute('data-theme','light');var b=document.getElementById('theme-btn-tr');if(b)b.textContent='☀️';}})();
 function toggleTrainingTheme(){var isLight=document.documentElement.getAttribute('data-theme')==='light';document.documentElement.setAttribute('data-theme',isLight?'':'light');var b=document.getElementById('theme-btn-tr');if(b)b.textContent=isLight?'🌙':'☀️';localStorage.setItem('speedread_theme',isLight?'dark':'light');}
 </script>
+<footer>
+<div class="container">
+  <div class="footer-copy"><span class="logo"><span>⚡</span> Warpreader</span> &nbsp;© 2026 Abundance LLC. Warpreader is a product of Abundance LLC.</div>
+  <div class="footer-links">
+    <a href="index.html">Home</a>
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+    <a href="mailto:support@warpreader.com">Contact</a>
+  </div>
+</div>
+</footer>
+
 <script src="training.js"></script>
 </body>
 </html>
