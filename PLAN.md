@@ -1,4 +1,4 @@
-# WarpRead App — Full Build, Go-to-Market & Financial Plan
+# Warpreader App — Full Build, Go-to-Market & Financial Plan
 **Prepared:** March 16, 2026 | **Goal:** $50K MRR in 18 months
 
 ---
@@ -120,7 +120,7 @@ Not just an RSVP reader. A reading productivity platform:
 
 #### React Native App (Month 3-4)
 - iOS + Android native apps
-- Share target integration ("Share to WarpRead" from any app)
+- Share target integration ("Share to Warpreader" from any app)
 - Notifications for daily reading streaks
 - ePub reader integration (epub.js)
 
@@ -176,7 +176,7 @@ Each tool: free, no signup required, shows result vs. average, soft CTA to "impr
 3. "RSVP Reading: Does It Actually Work? What Science Says"
 
 **Month 2 — Competition**
-4. "Spreeder vs WarpRead: Honest Comparison"
+4. "Spreeder vs Warpreader: Honest Comparison"
 5. "Best Speed Reading Apps in 2026 (Tested & Ranked)"
 6. "Outread App Review: Is It Worth It?"
 

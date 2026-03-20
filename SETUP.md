@@ -1,4 +1,4 @@
-# WarpRead — Setup Guide
+# Warpreader — Setup Guide
 Everything Hal built unassisted. These are the 4 steps YOU need to do (~20 minutes total).
 
 ---

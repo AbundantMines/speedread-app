@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// WarpRead — Create Stripe Products & Prices
+// Warpreader — Create Stripe Products & Prices
 // Run: STRIPE_SECRET_KEY=sk_live_xxx node scripts/create-stripe-products.js
 // Or add to .env and run: node scripts/create-stripe-products.js
 
@@ -13,7 +13,7 @@ async function createProducts() {
 
   // ─── 1. PRO SUBSCRIPTION ───────────────────────────────────
   const proProduct = await stripe.products.create({
-    name: 'WarpRead Pro',
+    name: 'Warpreader Pro',
     description: 'Unlimited speed reading, AI comprehension coach, cloud sync',
     metadata: { plan: 'pro' },
   });
@@ -38,7 +38,7 @@ async function createProducts() {
 
   // ─── 2. LIFETIME ───────────────────────────────────────────
   const lifetimeProduct = await stripe.products.create({
-    name: 'WarpRead Lifetime',
+    name: 'Warpreader Lifetime',
     description: 'One-time purchase — Pro features forever',
     metadata: { plan: 'lifetime' },
   });
@@ -61,7 +61,7 @@ async function createProducts() {
   // ─── 4. CREATE CUSTOMER PORTAL CONFIG ──────────────────────
   const portalConfig = await stripe.billingPortal.configurations.create({
     business_profile: {
-      headline: 'WarpRead subscription',
+      headline: 'Warpreader subscription',
     },
     features: {
       subscription_cancel: { enabled: true },

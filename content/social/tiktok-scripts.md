@@ -1,4 +1,4 @@
-# WarpRead — TikTok / Reels Content Scripts
+# Warpreader — TikTok / Reels Content Scripts
 **Goal:** Viral downloads. Target: 3 videos/week minimum.
 
 ---
@@ -24,7 +24,7 @@ Low effort. High watch time because it's visually addictive.
 ### Bucket 2: Transformation / Before-After
 **Script — "I read 5 books this week":**
 > Hook: "I read 5 books this week. Here's how."
-> [Show WarpRead app, 400 WPM, progress bar]
+> [Show Warpreader app, 400 WPM, progress bar]
 > "Before I learned speed reading: 1 book/month"
 > "After: 4-5 books/week"
 > "Your brain can handle way more than you think"
@@ -78,7 +78,7 @@ Low effort. High watch time because it's visually addictive.
 ### Bucket 6: "Tools I actually use" (Low effort, high trust)
 **Script:**
 > "Apps I actually use to read faster 🧵"
-> 1. WarpRead (RSVP — 3x faster)
+> 1. Warpreader (RSVP — 3x faster)
 > 2. Readwise (remember what you read)
 > 3. Instapaper (save articles)
 > "I went from 1 book/month to 4/week with this stack"
@@ -113,7 +113,7 @@ Subject: Free Pro account for [name]
 
 Hey [name]! Big fan of your content — especially [specific video].
 
-I built a speed reading app called WarpRead that [their audience] would actually use. It's RSVP-based, has AI comprehension questions, and there's a free WPM test.
+I built a speed reading app called Warpreader that [their audience] would actually use. It's RSVP-based, has AI comprehension questions, and there's a free WPM test.
 
 Wanted to send you a free lifetime Pro account — no strings attached. If you like it and want to feature it, great. If not, keep the account.
 

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// WarpRead — Auth (Supabase)
+// Warpreader — Auth (Supabase)
 // ═══════════════════════════════════════════════════════════════
 
 // ── Replace these with your Supabase project credentials ──
@@ -13,11 +13,11 @@ let userProfile = null;
 // ── Initialize ──
 function initAuth() {
   if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
-    console.warn('[WarpRead Auth] Supabase not configured — running in local-only mode');
+    console.warn('[Warpreader Auth] Supabase not configured — running in local-only mode');
     return;
   }
   if (typeof supabase === 'undefined') {
-    console.warn('[WarpRead Auth] Supabase JS not loaded');
+    console.warn('[Warpreader Auth] Supabase JS not loaded');
     return;
   }
   supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -64,7 +64,7 @@ async function fetchUserProfile() {
     }
     return userProfile;
   } catch (e) {
-    console.warn('[WarpRead Auth] Profile fetch failed:', e);
+    console.warn('[Warpreader Auth] Profile fetch failed:', e);
     return null;
   }
 }

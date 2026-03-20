@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// WarpRead — Main Reader Logic (app.js)
+// Warpreader — Main Reader Logic (app.js)
 // ═══════════════════════════════════════════════════════════════
 
 // ── STATE ──
@@ -1451,7 +1451,7 @@ function shareSession() {
   const wpm = document.getElementById('comp-wpm').textContent;
   const words = document.getElementById('comp-words').textContent;
   const streak = document.getElementById('comp-streak').textContent;
-  const text = `I just read ${words} words at ${wpm} WPM with WarpRead! 🔥 ${streak} day streak. warpreader.com`;
+  const text = `I just read ${words} words at ${wpm} WPM with Warpreader! 🔥 ${streak} day streak. warpreader.com`;
   if (navigator.share) {
     navigator.share({ text });
   } else {

@@ -1,4 +1,4 @@
-# WarpRead — Product Hunt Launch
+# Warpreader — Product Hunt Launch
 
 ## Tagline (60 chars max)
 Read 3× faster with AI comprehension. Free.
@@ -10,7 +10,7 @@ RSVP speed reading that actually works. Upload PDFs, paste text, or read any URL
 
 Hey Product Hunt! 👋
 
-I'm Beau, and I built WarpRead because every speed reading app I tried was either:
+I'm Beau, and I built Warpreader because every speed reading app I tried was either:
 - iOS-only (Outread)
 - Dated UI from 2018 (Spreeder)
 - $30/month to listen to robots read for you (Speechify)
@@ -56,7 +56,7 @@ speed reading, productivity, learning, reading, RSVP
 
 I've been building side projects for a while, and this one came from a personal frustration: I needed to read faster for work but existing apps were either Apple-only, ugly, or cost $30/mo.
 
-So I built WarpRead — web-based RSVP reader, free tier, AI comprehension questions.
+So I built Warpreader — web-based RSVP reader, free tier, AI comprehension questions.
 
 The AI part was the interesting discovery: **going faster doesn't help if you're not actually absorbing anything**. The comprehension questions show you exactly where your speed/retention tradeoff breaks down.
 
@@ -70,7 +70,7 @@ What's your current reading speed? I was at 210 WPM when I started, now around 4
 
 **Title:** Built a speed reading web app — sharing what I learned about RSVP + AI integration
 
-Just shipped WarpRead (warpreader.com) — an RSVP speed reading app with AI comprehension questions.
+Just shipped Warpreader (warpreader.com) — an RSVP speed reading app with AI comprehension questions.
 
 **Tech stack:**
 - Vanilla JS frontend (no frameworks — keeping it fast)
@@ -107,7 +107,7 @@ warpreader.com — what would make this your main reading tool?
 ### Email 1 — Welcome (immediate)
 Subject: You're in. Here's how to hit 400 WPM.
 
-Welcome to WarpRead.
+Welcome to Warpreader.
 
 Your first goal: 400 WPM with 80%+ comprehension. Most people can get there in 2-3 weeks.
 
@@ -116,7 +116,7 @@ Here's the fastest path:
 2. Add 50 WPM per session (if comprehension stays above 70%)
 3. Read something you actually care about (you'll go faster)
 
-Your first session is waiting → [Open WarpRead]
+Your first session is waiting → [Open Warpreader]
 
 — Beau
 
@@ -143,7 +143,7 @@ Takes 10 minutes/day to build the habit.
 ### Email 3 — Day 7 (active users)
 Subject: Your week 1 reading report
 
-You've been using WarpRead for a week. Here's where you stand:
+You've been using Warpreader for a week. Here's where you stand:
 
 [Dynamic: insert WPM, sessions, words read]
 

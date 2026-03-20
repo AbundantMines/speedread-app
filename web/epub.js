@@ -1,4 +1,4 @@
-// WarpRead — ePub Support
+// Warpreader — ePub Support
 // Uses JSZip (loaded from CDN) to unzip ePub files
 // ePub files are ZIP archives containing HTML/XHTML content files
 
