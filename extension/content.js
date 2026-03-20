@@ -1,4 +1,4 @@
-// SpeedRead Extension — Content Script (Readability-lite extraction)
+// WarpRead Extension — Content Script (Readability-lite extraction)
 
 function extractArticleText() {
   // Remove noise elements

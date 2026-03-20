@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "SpeedRead — Speed Reading Extension",
+  "name": "WarpRead — Speed Reading Extension",
   "version": "1.0.0",
   "description": "Speed read any webpage. Select text or click the icon to read at 300+ WPM using RSVP technology.",
   "permissions": ["activeTab", "contextMenus", "storage"],

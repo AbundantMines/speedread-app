@@ -1,4 +1,4 @@
-// SpeedRead Extension — Background Service Worker
+// WarpRead Extension — Background Service Worker
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({

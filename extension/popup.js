@@ -1,4 +1,4 @@
-// SpeedRead Extension — Popup Reader
+// WarpRead Extension — Popup Reader
 
 let words = [], idx = 0, wpm = 300, playing = false, timer = null;
 const ORP = [0,0,0,0,1,1,1,2,2,2,3,3,3,4,4,4];

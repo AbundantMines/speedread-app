@@ -1,4 +1,4 @@
-# SpeedRead — Setup Guide
+# WarpRead — Setup Guide
 Everything Hal built unassisted. These are the 4 steps YOU need to do (~20 minutes total).
 
 ---
@@ -18,12 +18,12 @@ Everything Hal built unassisted. These are the 4 steps YOU need to do (~20 minut
 ---
 
 ## Step 1 — Register Domain (~5 min)
-Register `speedread.app` — available on Cloudflare at ~$14/yr.
+Register `warpreader.com` — available on Cloudflare at ~$14/yr.
 
-1. Go to https://dash.cloudflare.com → Register Domains → Search "speedread.app"
+1. Go to https://dash.cloudflare.com → Register Domains → Search "warpreader.com"
 2. Purchase (credit card on file)
 3. Point DNS to Cloudflare Pages:
-   - In Cloudflare Pages → speedread-app → Custom Domains → Add "speedread.app"
+   - In Cloudflare Pages → speedread-app → Custom Domains → Add "warpreader.com"
    - Cloudflare auto-configures DNS
 
 ---

@@ -1,4 +1,4 @@
-# SpeedRead — Speed Reading App
+# WarpRead — Speed Reading App
 
 Read 3x faster using RSVP (Rapid Serial Visual Presentation) technology.
 
