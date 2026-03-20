@@ -1,4 +1,4 @@
-// ─── SpeedRead Training Course ───
+// ─── WarpRead Training Course ───
 // 28-day speed reading curriculum with persistence, drills, and certificates
 
 const CURRICULUM = [
@@ -29,7 +29,7 @@ const CURRICULUM = [
     drill: { type: "wpm_test", text: "standard_passage", description: "Same passage as Day 1. How much have you improved?" } },
   // WEEK 2: BUILDING SPEED
   { day: 8, week: 2, title: "Reading in Chunks", type: "theory+drill", duration: 10,
-    theory: "Instead of reading word-by-word, train your brain to absorb 2-3 words as a single unit. This is how fast readers actually operate. Chunk mode in SpeedRead shows 2 words at once — let's practice.",
+    theory: "Instead of reading word-by-word, train your brain to absorb 2-3 words as a single unit. This is how fast readers actually operate. Chunk mode in WarpRead shows 2 words at once — let's practice.",
     drill: { type: "rsvp_drill", wpm_multiplier: 1.4, chunk: 2, description: "Words will appear in pairs. Read them as single units." } },
   { day: 9, week: 2, title: "The Pointer Technique", type: "theory+drill", duration: 8,
     theory: "Using your cursor or finger as a pacer forces your eyes to move at a consistent, controlled speed. It prevents the eye from drifting back and creates a rhythm.",
@@ -861,7 +861,7 @@ function drawCertificate(improvement) {
   ctx.fillStyle = '#38bdf8';
   ctx.font = 'bold 36px Georgia, serif';
   ctx.textAlign = 'center';
-  ctx.fillText('⚡ SpeedRead Certified', 400, 90);
+  ctx.fillText('⚡ WarpRead Certified', 400, 90);
 
   // Divider
   ctx.strokeStyle = 'rgba(56,189,248,0.27)';

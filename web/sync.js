@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// SpeedRead — Sync (Reading History & Progress)
+// WarpRead — Sync (Reading History & Progress)
 // ═══════════════════════════════════════════════════════════════
 
 const SYNC_STORAGE_KEY = 'speedread_sessions';

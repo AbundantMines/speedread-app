@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// SpeedRead — Billing (Stripe)
+// WarpRead — Billing (Stripe)
 // ═══════════════════════════════════════════════════════════════
 
 // ── Replace with your Stripe publishable key ──
@@ -16,11 +16,11 @@ let stripeInstance = null;
 
 function initBilling() {
   if (STRIPE_PUBLISHABLE_KEY === 'pk_live_YOUR_KEY') {
-    console.warn('[SpeedRead Billing] Stripe not configured — checkout disabled');
+    console.warn('[WarpRead Billing] Stripe not configured — checkout disabled');
     return;
   }
   if (typeof Stripe === 'undefined') {
-    console.warn('[SpeedRead Billing] Stripe JS not loaded');
+    console.warn('[WarpRead Billing] Stripe JS not loaded');
     return;
   }
   stripeInstance = Stripe(STRIPE_PUBLISHABLE_KEY);
@@ -60,7 +60,7 @@ async function openCheckout(plan) {
     const session = await response.json();
     await stripeInstance.redirectToCheckout({ sessionId: session.id });
   } catch (e) {
-    console.error('[SpeedRead Billing] Checkout error:', e);
+    console.error('[WarpRead Billing] Checkout error:', e);
     alert('Checkout is not available yet. Server endpoint needed.');
   }
 }

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// SpeedRead — Auth (Supabase)
+// WarpRead — Auth (Supabase)
 // ═══════════════════════════════════════════════════════════════
 
 // ── Replace these with your Supabase project credentials ──
@@ -13,11 +13,11 @@ let userProfile = null;
 // ── Initialize ──
 function initAuth() {
   if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
-    console.warn('[SpeedRead Auth] Supabase not configured — running in local-only mode');
+    console.warn('[WarpRead Auth] Supabase not configured — running in local-only mode');
     return;
   }
   if (typeof supabase === 'undefined') {
-    console.warn('[SpeedRead Auth] Supabase JS not loaded');
+    console.warn('[WarpRead Auth] Supabase JS not loaded');
     return;
   }
   supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -64,7 +64,7 @@ async function fetchUserProfile() {
     }
     return userProfile;
   } catch (e) {
-    console.warn('[SpeedRead Auth] Profile fetch failed:', e);
+    console.warn('[WarpRead Auth] Profile fetch failed:', e);
     return null;
   }
 }
