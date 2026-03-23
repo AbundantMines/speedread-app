@@ -587,7 +587,7 @@ async function handleFile(file) {
   } catch(err) {
     setStatus('hidden');
     if (err.message === 'DRM_PROTECTED') {
-      showToast('🔒 This ePub is DRM-protected and can\'t be opened directly. Try: (1) the PDF version, (2) remove DRM with Calibre, or (3) paste the text.', 8000);
+      document.getElementById('drm-modal').classList.remove('hidden');
     } else {
       showToast('⚠️ Error loading file. Try pasting the text instead.', 5000);
     }
@@ -1045,7 +1045,7 @@ document.addEventListener('keydown', e => {
   const tag = document.activeElement?.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
   // Skip if any modal is open
-  const modals = ['paste-modal','url-modal','help-modal','auth-modal','upgrade-modal','catchup-modal','completion-modal','mybooks-modal','course-modal','quiz-modal','share-modal'];
+  const modals = ['paste-modal','url-modal','help-modal','auth-modal','upgrade-modal','catchup-modal','completion-modal','mybooks-modal','course-modal','quiz-modal','share-modal','drm-modal'];
   for (const id of modals) {
     const el = document.getElementById(id);
     if (el && !el.classList.contains('hidden')) {

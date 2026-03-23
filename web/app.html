@@ -932,5 +932,43 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 <script src="sync.js"></script>
 <script src="app.js"></script>
 
+<!-- DRM Help Modal -->
+<div class="modal-overlay hidden" id="drm-modal" onclick="if(event.target===this)document.getElementById('drm-modal').classList.add('hidden')">
+  <div class="modal-card" style="width:min(520px,95vw)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <div>
+        <div style="font-size:28px;margin-bottom:6px">🔒</div>
+        <h2 style="font-size:18px;font-weight:700;margin:0">Protected eBook</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin:4px 0 0">This file is DRM-locked by the publisher. Here are three ways to read it:</p>
+      </div>
+      <button onclick="document.getElementById('drm-modal').classList.add('hidden')" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;padding:0 0 0 12px;line-height:1">✕</button>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <!-- Option 1: Paste -->
+      <div style="padding:14px 16px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:10px">
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px">✅ Option 1 — Paste the text <span style="font-size:11px;font-weight:400;color:#22c55e;margin-left:6px">Easiest</span></div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.5">Open the book in your reading app (Kindle, Apple Books, Kobo). Select all text → Copy → come back and hit <strong style="color:var(--text)">Paste Text</strong> below.</div>
+        <button onclick="document.getElementById('drm-modal').classList.add('hidden'); document.getElementById('paste-modal').classList.remove('hidden');" style="margin-top:10px;padding:8px 16px;background:#22c55e;border:none;border-radius:6px;color:#000;font-weight:600;font-size:13px;cursor:pointer">Open Paste →</button>
+      </div>
+
+      <!-- Option 2: PDF -->
+      <div style="padding:14px 16px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:10px">
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px">📄 Option 2 — Use the PDF version <span style="font-size:11px;font-weight:400;color:#3b82f6;margin-left:6px">If available</span></div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.5">Many publishers also offer a DRM-free PDF. Check where you bought the book — download the PDF version and upload that instead.</div>
+      </div>
+
+      <!-- Option 3: Calibre -->
+      <div style="padding:14px 16px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.25);border-radius:10px">
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px">🛠 Option 3 — Remove DRM with Calibre <span style="font-size:11px;font-weight:400;color:#a855f7;margin-left:6px">For your personal copy</span></div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.5">Free tool. Legal for personal use in most countries. Install <a href="https://calibre-ebook.com" target="_blank" style="color:#a855f7">Calibre</a> + the DeDRM plugin → import your book → export as plain EPUB. Takes about 3 minutes.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;font-size:12px;color:var(--text-muted);text-align:center">
+      Non-DRM books (Project Gutenberg, etc.) load instantly with no issues.
+    </div>
+  </div>
+</div>
 </body>
 </html>
