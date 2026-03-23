@@ -21,6 +21,7 @@ let wpm = 300;
 let contextVisible = false;
 let timerId = null;
 let pageBoundaries = [];
+let sessionWordsRead = 0; // words read in current play session
 
 // ── PAGE BOUNDARY HELPERS ──
 // Returns the PDF page number for a given word index (binary search)
@@ -111,6 +112,17 @@ function pause() {
   if (timerId) { clearTimeout(timerId); timerId = null; }
   saveProgress();
   stopAutoSave();
+  // Phase 1 hooks
+  savePositionToLibrary();
+  const sw = typeof sessionWordsRead !== 'undefined' ? sessionWordsRead : 0;
+  if (sw > 200) {
+    logReadingActivity(sw);
+    const newStreak = updateStreakFull();
+    updateXP(sw);
+    const xpGained = Math.floor(sw / 100);
+    showToast(`⏸ Paused · +${xpGained} XP · 🔥 ${newStreak.current} day streak`, 3000);
+    sessionWordsRead = 0;
+  }
 }
 
 function scheduleNext() {
@@ -137,6 +149,16 @@ function scheduleNext() {
     showCompletionModal(currentFile.name.replace(/\.[^.]+$/, ''), words.length, wpm, duration);
     saveSessionData();
     stopAutoSave();
+    // Phase 1: book finished hooks
+    logReadingActivity(sessionWordsRead || 0);
+    updateStreakFull();
+    updateXP(sessionWordsRead || 0);
+    savePositionToLibrary();
+    sessionWordsRead = 0;
+    // Offer share card
+    setTimeout(() => {
+      if (confirm('🎉 Book finished! Generate your reading stats card?')) generateShareCard();
+    }, 3500);
     return;
   }
   if (chunkSize > 1) {
@@ -144,6 +166,7 @@ function scheduleNext() {
     displayWord(chunk);
     updateProgress();
     if (contextVisible) updateContext();
+    sessionWordsRead += chunkSize;
     const delay = getChunkDelay(chunk, wpm, chunkSize);
     timerId = setTimeout(() => { currentIdx += chunkSize; scheduleNext(); }, delay);
   } else {
@@ -151,6 +174,7 @@ function scheduleNext() {
     displayWord(word);
     updateProgress();
     if (contextVisible) updateContext();
+    sessionWordsRead += 1;
     timerId = setTimeout(() => { currentIdx++; scheduleNext(); }, getWordDelay(word, wpm));
   }
 }
@@ -610,6 +634,7 @@ function processText(text) {
 
   incrementDailyUsage(words.length);
   currentIdx = 0;
+  sessionWordsRead = 0;
   state = 'ready';
   setStatus('hidden');
   showIdleDisplay('Ready to read');
@@ -620,6 +645,28 @@ function processText(text) {
     offerResume(saved);
   } else {
     showToast(`📄 Loaded — ${words.length.toLocaleString()} words`);
+  }
+  // Offer save to library for logged-in users (not for course content)
+  if (isLoggedIn && typeof isLoggedIn === 'function' && isLoggedIn() && currentFile.name && !currentFile._courseContent) {
+    const lib = getLocalLibrary();
+    const alreadySaved = lib.some(b => b.title === currentFile.name);
+    if (!alreadySaved) {
+      setTimeout(() => {
+        showToast(`Save "${currentFile.name.slice(0,30)}" to My Books?`, 8000, [
+          { label: 'Save →', primary: true, onClick: () => {
+            const rawText = words.join(' ');
+            saveBookToLibrary(currentFile.name, currentFile.name, rawText, words.length).then(id => {
+              if (id) { currentFile.libraryId = id; showToast('📚 Saved to My Books!'); }
+            });
+          }},
+          { label: 'Skip', onClick: () => {} }
+        ]);
+      }, 1500);
+    } else {
+      // Already saved — set libraryId
+      const existing = lib.find(b => b.title === currentFile.name);
+      if (existing) currentFile.libraryId = existing.id;
+    }
   }
 }
 
@@ -994,10 +1041,11 @@ document.addEventListener('keydown', e => {
   const tag = document.activeElement?.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
   // Skip if any modal is open
-  const modals = ['paste-modal','url-modal','help-modal','auth-modal','upgrade-modal','catchup-modal','completion-modal'];
+  const modals = ['paste-modal','url-modal','help-modal','auth-modal','upgrade-modal','catchup-modal','completion-modal','mybooks-modal','course-modal','quiz-modal','share-modal'];
   for (const id of modals) {
-    if (!document.getElementById(id).classList.contains('hidden')) {
-      if (e.key === 'Escape') document.getElementById(id).classList.add('hidden');
+    const el = document.getElementById(id);
+    if (el && !el.classList.contains('hidden')) {
+      if (e.key === 'Escape') el.classList.add('hidden');
       return;
     }
   }
@@ -1023,8 +1071,9 @@ document.getElementById('rsvp-window').addEventListener('touchend', e => {
 }, { passive: true });
 
 // Click outside modals
-['paste-modal','url-modal','help-modal','auth-modal','upgrade-modal','catchup-modal','completion-modal'].forEach(id => {
-  document.getElementById(id).addEventListener('click', function(e) { if (e.target === this) this.classList.add('hidden'); });
+['paste-modal','url-modal','help-modal','auth-modal','upgrade-modal','catchup-modal','completion-modal','mybooks-modal','course-modal','quiz-modal','share-modal'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', function(e) { if (e.target === this) this.classList.add('hidden'); });
 });
 
 // ── UTILS ──
@@ -1544,11 +1593,648 @@ The practical application is significant. The average knowledge worker reads 4-5
   showToast('📰 Sample article loaded');
 }
 
-function loadText(text, title) {
-  currentFile = { name: title || 'Untitled', size: text.length };
+function loadText(text, title, opts) {
+  currentFile = { name: title || 'Untitled', size: text.length, _courseContent: !!(opts && opts.isCourse) };
   showReader();
   document.getElementById('book-title-text').textContent = title || 'Untitled';
   processText(text);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PHASE 1 FEATURES: Library · Streak/Levels · Course · Comprehension · Share
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── FEATURE 1: MY BOOKS LIBRARY (IndexedDB + Supabase) ──
+
+const IDB_NAME = 'warpreader', IDB_STORE = 'documents';
+let _idb = null;
+
+function openIDB() {
+  return new Promise((res, rej) => {
+    if (_idb) return res(_idb);
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE, { keyPath: 'id' });
+    req.onsuccess = e => { _idb = e.target.result; res(_idb); };
+    req.onerror = () => rej(req.error);
+  });
+}
+
+async function saveDocToIDB(id, text) {
+  const db = await openIDB();
+  return new Promise((res) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put({ id, text });
+    tx.oncomplete = () => res();
+  });
+}
+
+async function getDocFromIDB(id) {
+  const db = await openIDB();
+  return new Promise((res) => {
+    const req = db.transaction(IDB_STORE).objectStore(IDB_STORE).get(id);
+    req.onsuccess = () => res(req.result ? req.result.text : null);
+  });
+}
+
+function getLocalLibrary() {
+  try { return JSON.parse(localStorage.getItem('wr_library') || '[]'); } catch { return []; }
+}
+
+async function getLibraryCount() {
+  return getLocalLibrary().length;
+}
+
+async function saveBookToLibrary(title, fileName, text, wordCount) {
+  if (!isPro()) {
+    const count = await getLibraryCount();
+    if (count >= 3) {
+      showToast('Free plan: 3 books max. Upgrade to Pro for unlimited.', 4000);
+      showUpgradeModal();
+      return null;
+    }
+  }
+  const id = 'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+  await saveDocToIDB(id, text);
+  if (typeof isLoggedIn === 'function' && isLoggedIn() && supabaseClient) {
+    try {
+      await supabaseClient.from('documents').insert({
+        user_id: currentUser.id,
+        title,
+        file_name: fileName,
+        word_count: wordCount,
+        last_position: 0
+      });
+    } catch(e) { console.warn('Library sync error:', e); }
+  }
+  const lib = getLocalLibrary();
+  lib.push({ id, title, fileName, wordCount, lastPosition: 0, lastReadAt: null, createdAt: Date.now() });
+  localStorage.setItem('wr_library', JSON.stringify(lib));
+  updateLevelBadge();
+  return id;
+}
+
+async function loadBookFromLibrary(id) {
+  const text = await getDocFromIDB(id);
+  if (!text) {
+    showToast('Book not found in local storage — please re-upload', 3000);
+    return;
+  }
+  const lib = getLocalLibrary();
+  const book = lib.find(b => b.id === id);
+  if (!book) return;
+  const title = book.title;
+  document.getElementById('mybooks-modal').classList.add('hidden');
+  loadText(text, title);
+  currentFile.libraryId = id;
+  if (book.lastPosition > 0) {
+    setTimeout(() => {
+      showToast(`Resume "${title.slice(0,25)}" from ${Math.round(book.lastPosition/book.wordCount*100)}%?`, 10000, [
+        { label: 'Resume', primary: true, onClick: () => { currentIdx = book.lastPosition; displayWord(words[currentIdx]); updateProgress(); }},
+        { label: 'Start Over', onClick: () => {} }
+      ]);
+    }, 800);
+  }
+}
+
+async function deleteBook(id) {
+  if (!confirm('Remove this book from your library?')) return;
+  const db = await openIDB();
+  const tx = db.transaction(IDB_STORE, 'readwrite');
+  tx.objectStore(IDB_STORE).delete(id);
+  const lib = getLocalLibrary().filter(b => b.id !== id);
+  localStorage.setItem('wr_library', JSON.stringify(lib));
+  if (typeof isLoggedIn === 'function' && isLoggedIn() && supabaseClient) {
+    await supabaseClient.from('documents').delete().eq('user_id', currentUser.id).eq('title', id);
+  }
+  renderMyBooks();
+  showToast('Book removed');
+}
+
+function renderMyBooks() {
+  const lib = getLocalLibrary();
+  const list = document.getElementById('mybooks-list');
+  const empty = document.getElementById('mybooks-empty');
+  const upgrade = document.getElementById('mybooks-upgrade');
+  if (!list) return;
+  if (lib.length === 0) {
+    list.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+  } else {
+    if (empty) empty.style.display = 'none';
+    const colors = ['#c9a84c','#3b82f6','#22c55e','#a855f7','#ef4444','#f59e0b'];
+    const emojis = ['📗','📘','📕','📙','📓','📔'];
+    list.innerHTML = lib.map((book, i) => {
+      const progress = book.wordCount > 0 ? Math.round((book.lastPosition / book.wordCount) * 100) : 0;
+      const color = colors[i % colors.length];
+      const emoji = emojis[i % emojis.length];
+      const lastRead = book.lastReadAt ? new Date(book.lastReadAt).toLocaleDateString() : 'Never';
+      const safeId = book.id.replace(/'/g, "\\'");
+      return `<div onclick="loadBookFromLibrary('${safeId}')" style="display:flex;align-items:center;gap:14px;padding:14px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background=''">
+        <div style="width:44px;height:60px;border-radius:4px;background:${color}22;border:1px solid ${color}44;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${emoji}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${book.title}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin:3px 0">${(book.wordCount||0).toLocaleString()} words · Last read ${lastRead}</div>
+          <div style="height:4px;background:var(--border);border-radius:2px;margin-top:6px"><div style="height:100%;width:${progress}%;background:${color};border-radius:2px;transition:width 0.3s"></div></div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px">${progress}% complete</div>
+        </div>
+        <button onclick="event.stopPropagation();deleteBook('${safeId}')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:8px;opacity:0.5;font-size:16px" title="Remove">🗑</button>
+      </div>`;
+    }).join('');
+  }
+  if (upgrade) {
+    if (!isPro() && lib.length >= 3) upgrade.classList.remove('hidden');
+    else upgrade.classList.add('hidden');
+  }
+}
+
+function openMyBooks() {
+  renderMyBooks();
+  document.getElementById('mybooks-modal').classList.remove('hidden');
+}
+
+function savePositionToLibrary() {
+  if (!currentFile || !currentFile.libraryId) return;
+  const lib = getLocalLibrary();
+  const book = lib.find(b => b.id === currentFile.libraryId);
+  if (book) {
+    book.lastPosition = currentIdx;
+    book.lastReadAt = Date.now();
+    localStorage.setItem('wr_library', JSON.stringify(lib));
+  }
+}
+
+// ── FEATURE 2: STREAK + PROGRESSION LEVELS ──
+
+const LEVELS = [
+  { level:1,  name:'Beginner',      minWpm:0,   maxWpm:199,  emoji:'📖', color:'#888' },
+  { level:2,  name:'Casual Reader', minWpm:200, maxWpm:249,  emoji:'📚', color:'#6b7280' },
+  { level:3,  name:'Reader',        minWpm:250, maxWpm:299,  emoji:'⚡', color:'#3b82f6' },
+  { level:4,  name:'Fast Reader',   minWpm:300, maxWpm:349,  emoji:'🚀', color:'#22c55e' },
+  { level:5,  name:'Speed Reader',  minWpm:350, maxWpm:399,  emoji:'🔥', color:'#f59e0b' },
+  { level:6,  name:'Rapid Reader',  minWpm:400, maxWpm:449,  emoji:'⚡', color:'#f97316' },
+  { level:7,  name:'Elite Reader',  minWpm:450, maxWpm:499,  emoji:'💎', color:'#a855f7' },
+  { level:8,  name:'Master',        minWpm:500, maxWpm:549,  emoji:'🏆', color:'#ec4899' },
+  { level:9,  name:'Expert',        minWpm:550, maxWpm:599,  emoji:'🌟', color:'#06b6d4' },
+  { level:10, name:'Warp Speed',    minWpm:600, maxWpm:9999, emoji:'🛸', color:'#c9a84c' },
+];
+
+function getLevelForWpm(wpmVal) {
+  return LEVELS.find(l => wpmVal >= l.minWpm && wpmVal <= l.maxWpm) || LEVELS[0];
+}
+
+function updateStreakFull() {
+  const today = new Date().toISOString().split('T')[0];
+  const streak = JSON.parse(localStorage.getItem('wr_streak') || '{"current":0,"best":0,"lastDate":""}');
+  if (streak.lastDate === today) return streak;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  if (streak.lastDate === yesterday) {
+    streak.current += 1;
+  } else {
+    streak.current = 1;
+  }
+  if (streak.current > streak.best) streak.best = streak.current;
+  streak.lastDate = today;
+  localStorage.setItem('wr_streak', JSON.stringify(streak));
+  if (typeof isLoggedIn === 'function' && isLoggedIn() && supabaseClient) {
+    supabaseClient.from('profiles').update({
+      streak_current: streak.current,
+      streak_best: streak.best,
+      last_session_date: today
+    }).eq('id', currentUser.id).then(() => {});
+  }
+  return streak;
+}
+
+function getStreakDisplay() {
+  return JSON.parse(localStorage.getItem('wr_streak') || '{"current":0,"best":0}');
+}
+
+function updateXP(wordsReadCount) {
+  const xp = JSON.parse(localStorage.getItem('wr_xp') || '{"total":0}');
+  const gained = Math.floor(wordsReadCount / 100);
+  xp.total += gained;
+  localStorage.setItem('wr_xp', JSON.stringify(xp));
+  if (typeof isLoggedIn === 'function' && isLoggedIn() && supabaseClient) {
+    supabaseClient.from('profiles').update({ xp_total: xp.total }).eq('id', currentUser.id).then(() => {});
+  }
+  return gained;
+}
+
+function logReadingActivity(wordsReadCount) {
+  if (!wordsReadCount) return;
+  const today = new Date().toISOString().split('T')[0];
+  const activity = JSON.parse(localStorage.getItem('wr_activity') || '{}');
+  activity[today] = (activity[today] || 0) + wordsReadCount;
+  const cutoff = new Date(Date.now() - 90*86400000).toISOString().split('T')[0];
+  Object.keys(activity).forEach(d => { if (d < cutoff) delete activity[d]; });
+  localStorage.setItem('wr_activity', JSON.stringify(activity));
+  // Update total words
+  const prev = parseInt(localStorage.getItem('wr_total_words') || '0');
+  localStorage.setItem('wr_total_words', String(prev + wordsReadCount));
+  renderHeatmap('heatmap-container');
+}
+
+function renderHeatmap(containerId) {
+  const activity = JSON.parse(localStorage.getItem('wr_activity') || '{}');
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const days = 84;
+  const cells = [];
+  for (let i = days-1; i >= 0; i--) {
+    const d = new Date(Date.now() - i*86400000).toISOString().split('T')[0];
+    const w = activity[d] || 0;
+    const opacity = w === 0 ? 0.08 : Math.min(0.2 + (w/5000)*0.8, 1);
+    cells.push(`<div title="${d}: ${w.toLocaleString()} words" style="width:10px;height:10px;border-radius:2px;background:rgba(201,168,76,${opacity});flex-shrink:0"></div>`);
+  }
+  container.innerHTML = `<div style="display:grid;grid-template-rows:repeat(7,10px);grid-auto-flow:column;gap:2px">${cells.join('')}</div>`;
+}
+
+function updateLevelBadge() {
+  const badge = document.getElementById('level-badge');
+  if (!badge) return;
+  const level = getLevelForWpm(wpm);
+  const streak = getStreakDisplay();
+  badge.style.display = 'block';
+  badge.textContent = `${level.emoji} Lv${level.level} ${level.name} · 🔥 ${streak.current}d`;
+  badge.title = `${level.name} — ${wpm} WPM · ${streak.current} day streak (best: ${streak.best})`;
+}
+
+// ── FEATURE 3: 28-DAY TRAINING COURSE ──
+
+const COURSE_DAYS = [
+  { day:1,  week:1, title:'Find Your Baseline', wpmTarget:null, duration:10, content:'gutenberg_short', desc:'Read at your natural pace. No pressure — we\'re just establishing where you start.' },
+  { day:2,  week:1, title:'The RSVP Advantage', wpmTarget:null, duration:10, content:'gutenberg_short', desc:'Today we explain why RSVP works. Then read the same passage 20 WPM faster.' },
+  { day:3,  week:1, title:'First Speed Bump', wpmTarget:'base+20', duration:12, content:'philosophy', desc:'Read 20 WPM above your baseline. It\'ll feel fast. That\'s the point.' },
+  { day:4,  week:1, title:'Hold the Pace', wpmTarget:'base+20', duration:12, content:'philosophy', desc:'Same target. Focus on not re-reading. The brain adapts to forward momentum.' },
+  { day:5,  week:1, title:'Vocabulary Sprint', wpmTarget:'base+30', duration:15, content:'fiction', desc:'Fiction is easier — higher frequency words. Use it to push your pace.' },
+  { day:6,  week:1, title:'Comprehension Check', wpmTarget:'base+25', duration:15, content:'philosophy', desc:'Push speed, then we\'ll test comprehension. Aim for 70%+ at your new pace.' },
+  { day:7,  week:1, title:'Week 1 Review', wpmTarget:'base+30', duration:15, content:'mixed', desc:'Full session at your week-1 target. Track your improvement from Day 1.' },
+  { day:8,  week:2, title:'Break the Ceiling', wpmTarget:'base+50', duration:15, content:'fiction', desc:'Week 2 starts here. 50 WPM above baseline. This is where real gains happen.' },
+  { day:9,  week:2, title:'Long Form Stamina', wpmTarget:'base+50', duration:20, content:'philosophy', desc:'First 20-minute session. Stamina matters as much as speed.' },
+  { day:10, week:2, title:'Speed Burst Training', wpmTarget:'base+80', duration:10, content:'fiction', desc:'10 minutes, 80 WPM above baseline. Sprint, not marathon.' },
+  { day:11, week:2, title:'Recovery Pace', wpmTarget:'base+40', duration:20, content:'mixed', desc:'Drop to +40 for a longer session. Let the gains consolidate.' },
+  { day:12, week:2, title:'The Discomfort Zone', wpmTarget:'base+100', duration:10, content:'fiction', desc:'We\'re going 100 WPM above baseline for 10 minutes. You\'ll miss some words. That\'s fine.' },
+  { day:13, week:2, title:'Comprehension at Speed', wpmTarget:'base+60', duration:15, content:'philosophy', desc:'Speed check with comprehension quiz. See how much you retain at your new pace.' },
+  { day:14, week:2, title:'Week 2 Milestone', wpmTarget:'base+70', duration:20, content:'mixed', desc:'Big session. 20 minutes at +70 WPM. This is your new comfortable pace.' },
+  { day:15, week:3, title:'New Normal', wpmTarget:'base+70', duration:20, content:'philosophy', desc:'Last week\'s push speed is now your normal. Read at it comfortably.' },
+  { day:16, week:3, title:'Technical Content', wpmTarget:'base+60', duration:20, content:'nonfiction', desc:'Non-fiction is harder. Same speed, denser content. This builds real comprehension.' },
+  { day:17, week:3, title:'Speed Ladder', wpmTarget:'base+80', duration:15, content:'fiction', desc:'Up 10 WPM from last week. The ladder continues.' },
+  { day:18, week:3, title:'30-Minute Challenge', wpmTarget:'base+60', duration:30, content:'mixed', desc:'First 30-minute session. This is the real endurance test.' },
+  { day:19, week:3, title:'Focus Sprint', wpmTarget:'base+100', duration:10, content:'fiction', desc:'10-minute sprint at +100. Push the ceiling again.' },
+  { day:20, week:3, title:'Comprehension Deep Dive', wpmTarget:'base+70', duration:20, content:'philosophy', desc:'Quiz after this session. Target: 80%+ comprehension at your speed.' },
+  { day:21, week:3, title:'Week 3 Review', wpmTarget:'base+80', duration:25, content:'mixed', desc:'25 minutes, +80 WPM. This is where most people double their original pace.' },
+  { day:22, week:4, title:'Peak Week Begins', wpmTarget:'base+100', duration:20, content:'philosophy', desc:'Week 4. This week we find your ceiling.' },
+  { day:23, week:4, title:'Maximum Throughput', wpmTarget:'base+120', duration:15, content:'fiction', desc:'+120 WPM above baseline. Go as fast as you can while understanding 60%+.' },
+  { day:24, week:4, title:'Endurance at Peak', wpmTarget:'base+100', duration:30, content:'mixed', desc:'30 minutes at your peak sustainable pace.' },
+  { day:25, week:4, title:'Final Speed Test', wpmTarget:'base+130', duration:10, content:'fiction', desc:'Sprint. Your fastest session yet.' },
+  { day:26, week:4, title:'Comprehension Final', wpmTarget:'base+100', duration:20, content:'philosophy', desc:'Final comprehension check. Prove you\'re actually reading, not just skimming.' },
+  { day:27, week:4, title:'Victory Lap', wpmTarget:'base+100', duration:20, content:'mixed', desc:'Comfortable session at your new normal. You\'ve earned this.' },
+  { day:28, week:4, title:'GRADUATION 🎓', wpmTarget:'base+100', duration:15, content:'philosophy', desc:'Day 28. Read the same passage from Day 1. See how far you\'ve come.' },
+];
+
+function getCourseState() {
+  return JSON.parse(localStorage.getItem('wr_course') || '{"started":false,"dayCompleted":0,"baseWpm":0,"startDate":null}');
+}
+
+function saveCourseState(state) {
+  localStorage.setItem('wr_course', JSON.stringify(state));
+  if (typeof isLoggedIn === 'function' && isLoggedIn() && supabaseClient) {
+    supabaseClient.from('profiles').update({
+      course_started_at: state.startDate,
+      course_day_completed: state.dayCompleted
+    }).eq('id', currentUser.id).then(() => {});
+  }
+}
+
+function startCourse() {
+  const baseWpmVal = wpm;
+  saveCourseState({ started: true, dayCompleted: 0, baseWpm: baseWpmVal, startDate: new Date().toISOString() });
+  renderCourse();
+}
+
+function completeCourseDay() {
+  const cs = getCourseState();
+  cs.dayCompleted = Math.max(cs.dayCompleted, getCurrentCourseDay());
+  saveCourseState(cs);
+  if (cs.dayCompleted >= 28) {
+    showGraduationModal();
+    if (typeof isLoggedIn === 'function' && isLoggedIn() && supabaseClient) {
+      supabaseClient.from('profiles').update({ course_completed_at: new Date().toISOString() }).eq('id', currentUser.id).then(() => {});
+    }
+  }
+  showToast(`✅ Day ${cs.dayCompleted} complete! 🎉`);
+}
+
+function getCurrentCourseDay() {
+  const cs = getCourseState();
+  return Math.min(cs.dayCompleted + 1, 28);
+}
+
+function renderCourse() {
+  const cs = getCourseState();
+  const container = document.getElementById('course-content');
+  if (!container) return;
+
+  if (!cs.started) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:48px;margin-bottom:16px">🎯</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:8px">28 Days to 2× Faster Reading</div>
+        <div style="color:var(--text-muted);font-size:14px;max-width:400px;margin:0 auto 24px;line-height:1.6">15–30 minutes a day. Structured progression. Comprehension checks. By Day 28 you'll read at 2–3× your current pace.</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px">Your current speed: <strong style="color:var(--accent)">${wpm} WPM</strong></div>
+        <button onclick="startCourse()" style="background:var(--accent);color:#000;border:none;padding:14px 32px;border-radius:8px;font-weight:700;font-size:16px;cursor:pointer">Start Day 1 →</button>
+      </div>`;
+    return;
+  }
+
+  const todayDay = getCurrentCourseDay();
+  const todayLesson = COURSE_DAYS[todayDay - 1];
+  const targetWpm = todayLesson.wpmTarget === null ? cs.baseWpm :
+    parseInt(todayLesson.wpmTarget.replace('base+','')) + cs.baseWpm;
+
+  const weekBars = [1,2,3,4].map(w => {
+    const weekDays = COURSE_DAYS.filter(d => d.week === w);
+    const done = weekDays.filter(d => d.day <= cs.dayCompleted).length;
+    const pct = done / 7 * 100;
+    const barColor = w === Math.ceil(todayDay/7) ? 'var(--accent)' : done === 7 ? '#22c55e' : '#333';
+    return `<div style="flex:1"><div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Week ${w}</div><div style="height:6px;background:#222;border-radius:3px"><div style="width:${pct}%;height:100%;background:${barColor};border-radius:3px;transition:width 0.3s"></div></div></div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:20px">${weekBars}</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px">Day ${todayDay} of 28 · ${Math.round(todayDay/28*100)}% complete</div>
+    <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <div style="font-size:11px;color:var(--accent);font-weight:600;text-transform:uppercase;letter-spacing:1px">Day ${todayDay} · Week ${todayLesson.week}</div>
+          <div style="font-size:18px;font-weight:700;margin-top:4px">${todayLesson.title}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--text-muted)">Target</div>
+          <div style="font-size:20px;font-weight:700;color:var(--accent)">${targetWpm}<span style="font-size:12px;color:var(--text-muted)"> WPM</span></div>
+        </div>
+      </div>
+      <div style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:16px">${todayLesson.desc}</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">⏱ ${todayLesson.duration} min session</div>
+      <button onclick="startCourseDay(${todayDay},${targetWpm})" style="width:100%;background:var(--accent);color:#000;border:none;padding:12px;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer">Start Day ${todayDay} →</button>
+    </div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px">Course Progress</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
+      ${COURSE_DAYS.map(d => {
+        const bg = d.day < todayDay ? '#22c55e22' : d.day === todayDay ? 'rgba(201,168,76,0.2)' : '#1a1a1a';
+        const border = d.day < todayDay ? '#22c55e44' : d.day === todayDay ? 'rgba(201,168,76,0.5)' : '#222';
+        const textColor = d.day < todayDay ? '#22c55e' : d.day === todayDay ? 'var(--accent)' : '#555';
+        const icon = d.day < todayDay ? '✓' : d.day === todayDay ? '▶' : String(d.day);
+        return `<div title="Day ${d.day}: ${d.title}" style="height:28px;border-radius:4px;background:${bg};border:1px solid ${border};display:flex;align-items:center;justify-content:center;font-size:10px;color:${textColor}">${icon}</div>`;
+      }).join('')}
+    </div>`;
+}
+
+async function startCourseDay(day, targetWpmVal) {
+  setWPM(targetWpmVal);
+  const lesson = COURSE_DAYS[day-1];
+  document.getElementById('course-modal').classList.add('hidden');
+  const bookId = lesson.content === 'philosophy' ? 2680 : 1342;
+  showToast(`Loading Day ${day} content...`);
+  try {
+    const resp = await fetch(`https://www.gutenberg.org/cache/epub/${bookId}/pg${bookId}.txt`);
+    const fullText = await resp.text();
+    const ws = fullText.split(/\s+/).filter(w => w.length > 0);
+    const start = (day - 1) * 500;
+    const count = lesson.duration * targetWpmVal;
+    const section = ws.slice(start, start + count).join(' ');
+    loadText(section, `Day ${day}: ${lesson.title}`, { isCourse: true });
+    showToast(`Day ${day} ready — ${targetWpmVal} WPM target 🎯`);
+  } catch(e) {
+    showToast('Could not load content — paste your own text to continue', 4000);
+  }
+}
+
+function showGraduationModal() {
+  const cs = getCourseState();
+  showToast(`🎓 Course complete! You went from ${cs.baseWpm} WPM to ${wpm} WPM!`, 6000);
+  setTimeout(() => generateShareCard(), 2000);
+}
+
+function openCourse() {
+  renderCourse();
+  document.getElementById('course-modal').classList.remove('hidden');
+}
+
+// ── FEATURE 4: COMPREHENSION CHECK ──
+
+let quizQuestions = [];
+let quizAnswers = {};
+
+async function generateComprehensionCheck() {
+  if (!words.length) { showToast('Load a document first', 3000); return; }
+  const recentWords = wordBuffer.slice(-400).map(e => e.word).join(' ');
+  const cleanPassage = cleanExtractedText(recentWords) || recentWords;
+
+  const modal = document.getElementById('quiz-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  document.getElementById('quiz-loading').style.display = 'block';
+  document.getElementById('quiz-questions').style.display = 'none';
+  document.getElementById('quiz-result').style.display = 'none';
+  document.getElementById('quiz-submit-btn').style.display = 'none';
+  document.getElementById('quiz-resume-btn').style.display = 'none';
+  const badge = document.getElementById('quiz-score-badge');
+  if (badge) badge.style.display = 'none';
+  quizAnswers = {};
+
+  if (!window.OPENAI_API_KEY) {
+    document.getElementById('quiz-loading').innerHTML = '<div style="color:#f59e0b;padding:20px 0">AI comprehension requires an OpenAI API key.<br><span style="font-size:12px;color:var(--text-muted)">Coming soon for Pro users — questions will be generated automatically.</span></div>';
+    document.getElementById('quiz-resume-btn').style.display = 'block';
+    return;
+  }
+
+  try {
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${window.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'Generate exactly 3 multiple-choice comprehension questions about the passage. Return ONLY valid JSON array: [{"question":"...","options":["A. ...","B. ...","C. ...","D. ..."],"correct":0}] where correct is 0-3 index.' },
+          { role: 'user', content: `Passage:\n\n${cleanPassage}` }
+        ],
+        max_tokens: 600, temperature: 0.3
+      })
+    });
+    const data = await resp.json();
+    const content = data.choices[0].message.content.trim();
+    quizQuestions = JSON.parse(content.replace(/```json|```/g,'').trim());
+    renderQuiz();
+  } catch(e) {
+    document.getElementById('quiz-loading').innerHTML = '<div style="color:#ef4444">Could not generate questions — try again</div>';
+    document.getElementById('quiz-resume-btn').style.display = 'block';
+  }
+}
+
+function renderQuiz() {
+  document.getElementById('quiz-loading').style.display = 'none';
+  document.getElementById('quiz-submit-btn').style.display = 'block';
+  const container = document.getElementById('quiz-questions');
+  container.style.display = 'block';
+  container.innerHTML = quizQuestions.map((q, qi) => `
+    <div style="margin-bottom:20px">
+      <div style="font-weight:600;font-size:14px;margin-bottom:10px">${qi+1}. ${q.question}</div>
+      ${q.options.map((opt, oi) => `
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);margin-bottom:6px;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background=''">
+          <input type="radio" name="q${qi}" value="${oi}" onchange="quizAnswers[${qi}]=${oi}" style="accent-color:var(--accent)">
+          <span style="font-size:13px">${opt}</span>
+        </label>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function submitQuiz() {
+  const answered = Object.keys(quizAnswers).length;
+  if (answered < quizQuestions.length) { showToast(`Answer all ${quizQuestions.length} questions first`); return; }
+  let correct = 0;
+  quizQuestions.forEach((q, i) => { if (parseInt(quizAnswers[i]) === q.correct) correct++; });
+  const score = Math.round(correct / quizQuestions.length * 100);
+  document.getElementById('quiz-submit-btn').style.display = 'none';
+  document.getElementById('quiz-resume-btn').style.display = 'block';
+  document.getElementById('quiz-questions').style.display = 'none';
+  const badge = document.getElementById('quiz-score-badge');
+  if (badge) {
+    badge.style.display = 'block';
+    badge.textContent = `${score}%`;
+    badge.style.background = score >= 80 ? 'rgba(34,197,94,0.2)' : score >= 60 ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.2)';
+    badge.style.color = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444';
+  }
+  const advice = score >= 90 ? `🚀 Excellent! Try pushing to ${wpm + 25} WPM.` :
+                 score >= 70 ? '✅ Good retention at this speed.' :
+                 score >= 50 ? `⚡ Consider dropping to ${Math.max(wpm - 25, 100)} WPM for better retention.` :
+                               `⚠️ Slow down — try ${Math.max(wpm - 50, 100)} WPM for better comprehension.`;
+  const result = document.getElementById('quiz-result');
+  result.style.display = 'block';
+  result.innerHTML = `
+    <div style="text-align:center;padding:20px 0">
+      <div style="font-size:48px;font-weight:800;color:${score >= 70 ? '#22c55e' : '#f59e0b'}">${score}%</div>
+      <div style="font-size:16px;margin:8px 0">${correct} of ${quizQuestions.length} correct</div>
+      <div style="font-size:14px;color:var(--text-muted);margin-top:12px;padding:12px;background:var(--bg-elevated);border-radius:8px">${advice}</div>
+    </div>`;
+  if (typeof isLoggedIn === 'function' && isLoggedIn() && supabaseClient) {
+    supabaseClient.from('comprehension_results').insert({ user_id: currentUser.id, score, wpm_at_time: wpm }).then(() => {});
+  }
+  showToast(`Comprehension: ${score}% — ${correct}/${quizQuestions.length} correct`);
+}
+
+function closeQuiz(resume) {
+  document.getElementById('quiz-modal').classList.add('hidden');
+  if (resume && words.length > 0) play();
+}
+
+// ── FEATURE 5: SHAREABLE STATS CARD ──
+
+function generateShareCard() {
+  const streak = getStreakDisplay();
+  const totalWords = parseInt(localStorage.getItem('wr_total_words') || '0');
+  const hoursSaved = totalWords > 0 ? Math.max(0, (totalWords/250 - totalWords/Math.max(wpm,1))/60).toFixed(1) : '0';
+  const lib = getLocalLibrary();
+  const booksFinished = lib.filter(b => b.wordCount > 0 && b.lastPosition >= (b.wordCount * 0.9)).length;
+
+  const canvas = document.getElementById('share-canvas');
+  if (!canvas) return;
+  canvas.width = 1080; canvas.height = 1080;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  const grad = ctx.createLinearGradient(0,0,1080,1080);
+  grad.addColorStop(0, '#0a0a0a');
+  grad.addColorStop(1, '#111111');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,1080,1080);
+
+  // Accent border
+  ctx.strokeStyle = '#c9a84c';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(30,30,1020,1020);
+
+  // Brand
+  ctx.fillStyle = '#c9a84c';
+  ctx.font = 'bold 36px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('⚡ WarpReader', 540, 120);
+
+  // Main WPM
+  ctx.fillStyle = '#f0e8d8';
+  ctx.font = 'bold 160px system-ui, -apple-system, sans-serif';
+  ctx.fillText(String(wpm), 540, 380);
+  ctx.fillStyle = '#888';
+  ctx.font = '48px system-ui, -apple-system, sans-serif';
+  ctx.fillText('words per minute', 540, 450);
+
+  // Divider
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(120,500); ctx.lineTo(960,500); ctx.stroke();
+
+  // Stats
+  const stats = [
+    { label: 'Hours Saved', value: hoursSaved + 'h' },
+    { label: 'Day Streak', value: '🔥 ' + streak.current },
+    { label: 'Books Read', value: String(booksFinished) },
+  ];
+  stats.forEach((s, i) => {
+    const x = 200 + i * 340;
+    ctx.fillStyle = '#c9a84c';
+    ctx.font = 'bold 56px system-ui, -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(s.value, x, 620);
+    ctx.fillStyle = '#666';
+    ctx.font = '28px system-ui, -apple-system, sans-serif';
+    ctx.fillText(s.label, x, 665);
+  });
+
+  // Level
+  const lvl = getLevelForWpm(wpm);
+  ctx.fillStyle = '#c9a84c';
+  ctx.font = 'bold 32px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${lvl.emoji} Level ${lvl.level} — ${lvl.name}`, 540, 730);
+
+  // Message
+  ctx.fillStyle = '#f0e8d8';
+  ctx.font = '30px system-ui, -apple-system, sans-serif';
+  ctx.fillText('I read faster than 94% of people.', 540, 800);
+
+  // URL
+  ctx.fillStyle = '#c9a84c';
+  ctx.font = 'bold 30px system-ui, -apple-system, sans-serif';
+  ctx.fillText('warpreader.com', 540, 950);
+
+  document.getElementById('share-modal').classList.remove('hidden');
+  const nativeBtn = document.getElementById('native-share-btn');
+  if (nativeBtn) nativeBtn.style.display = navigator.share ? 'block' : 'none';
+}
+
+function downloadShareCard() {
+  const canvas = document.getElementById('share-canvas');
+  if (!canvas) return;
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'my-warpreader-stats.png';
+  a.click();
+  showToast('Stats card downloaded! 📤');
+}
+
+async function nativeShare() {
+  const canvas = document.getElementById('share-canvas');
+  if (!canvas) return;
+  canvas.toBlob(async blob => {
+    try {
+      await navigator.share({
+        title: `I read at ${wpm} WPM with WarpReader`,
+        text: `I read at ${wpm} WPM — that's faster than 94% of people. Try WarpReader free: warpreader.com`,
+        files: [new File([blob], 'warpreader-stats.png', { type: 'image/png' })]
+      });
+    } catch(e) { downloadShareCard(); }
+  });
 }
 
 // ── INIT ──
@@ -1582,6 +2268,10 @@ window.addEventListener('DOMContentLoaded', () => {
   // Show streak
   const streakEl = document.getElementById('streak-display');
   if (streakEl) streakEl.textContent = getStreak() > 0 ? '🔥 ' + getStreak() + ' day streak' : '';
+
+  // Phase 1: init heatmap, level badge
+  renderHeatmap('heatmap-container');
+  updateLevelBadge();
 
   // Check for plan redirect from landing page
   const params = new URLSearchParams(window.location.search);

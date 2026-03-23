@@ -392,6 +392,10 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
   <div class="sidebar-section">
     <div class="sidebar-section-title">WPM Progress</div>
     <div class="sidebar-chart" id="wpm-chart"></div>
+    <div style="margin-top:10px">
+      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px">Reading Activity</div>
+      <div id="heatmap-container"></div>
+    </div>
   </div>
 
   <div class="sidebar-section">
@@ -449,6 +453,8 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
       <button class="btn btn-sm" onclick="toggleTheme()" id="theme-btn" title="Toggle theme">🌙</button>
       <button class="btn btn-sm" onclick="toggleComprehension()" title="Comprehension mode">🧠<span class="pro-badge">PRO</span></button>
       <button class="btn btn-sm" onclick="openHelp()" title="Keyboard shortcuts">?</button>
+      <button class="btn btn-sm" onclick="generateShareCard()" title="Share stats">📤</button>
+      <div id="level-badge" style="display:none;padding:4px 10px;border-radius:20px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);font-size:12px;font-weight:600;color:var(--accent);cursor:pointer" onclick="openMyBooks()" title="My Books & Stats"></div>
     </div>
   </div>
 
@@ -486,6 +492,8 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         <button class="btn" onclick="openPasteModal()">📋 Paste Text</button>
         <button class="btn" onclick="openURLModal()">🔗 Import URL</button>
+        <button class="btn" onclick="openMyBooks()">📚 My Books</button>
+        <button class="btn" onclick="openCourse()">🎯 28-Day Course</button>
       </div>
     </div>
 
@@ -562,6 +570,8 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 
       <div class="footer-row">
         <button class="btn" id="context-btn" onclick="toggleContext()">Context: OFF</button>
+        <button class="btn" onclick="generateComprehensionCheck()" title="AI comprehension quiz">🧠 Quiz</button>
+        <button class="btn" onclick="generateShareCard()" title="Share your stats">📤 Share</button>
         <button class="btn btn-danger" onclick="closeBook()">✕ Close</button>
       </div>
     </div>
@@ -844,6 +854,73 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
     </div>
     <button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="shareSession()">📤 Share My Stats</button>
     <button class="btn" style="width:100%" onclick="closeCompletionModal()">Keep Reading</button>
+  </div>
+</div>
+
+<!-- MY BOOKS MODAL -->
+<div class="modal-overlay hidden" id="mybooks-modal">
+  <div class="modal-card" style="width:min(600px,95vw);max-height:80vh;overflow-y:auto;background:var(--bg-card);border-radius:var(--radius-lg);padding:24px;border:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="font-size:18px;font-weight:700">📚 My Books</h2>
+      <button onclick="document.getElementById('mybooks-modal').classList.add('hidden')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div id="mybooks-list"></div>
+    <div id="mybooks-empty" style="display:none;text-align:center;padding:40px 20px;color:var(--text-muted)">
+      <div style="font-size:40px;margin-bottom:12px">📖</div>
+      <div style="font-size:15px;margin-bottom:8px">No books saved yet</div>
+      <div style="font-size:13px">Upload a PDF, EPUB, or paste text — then save it to your library</div>
+    </div>
+    <div id="mybooks-upgrade" class="hidden" style="margin-top:16px;padding:12px 16px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;font-size:13px;color:#f59e0b">
+      📚 Free plan: 3 books max. <a href="#" onclick="showUpgradeModal();return false" style="color:#f59e0b;text-decoration:underline">Upgrade to Pro</a> for unlimited.
+    </div>
+  </div>
+</div>
+
+<!-- COURSE MODAL -->
+<div class="modal-overlay hidden" id="course-modal">
+  <div class="modal-card" style="width:min(640px,95vw);max-height:85vh;overflow-y:auto;background:var(--bg-card);border-radius:var(--radius-lg);padding:24px;border:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="font-size:18px;font-weight:700">📅 28-Day Training Course</h2>
+      <button onclick="document.getElementById('course-modal').classList.add('hidden')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div id="course-content"></div>
+  </div>
+</div>
+
+<!-- QUIZ MODAL -->
+<div class="modal-overlay hidden" id="quiz-modal">
+  <div class="modal-card" style="width:min(560px,95vw);background:var(--bg-card);border-radius:var(--radius-lg);padding:24px;border:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="font-size:18px;font-weight:700">🧠 Comprehension Check</h2>
+      <span id="quiz-score-badge" style="display:none;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600"></span>
+    </div>
+    <div id="quiz-loading" style="text-align:center;padding:30px;color:var(--text-muted)">
+      <div style="font-size:32px;margin-bottom:12px">⏳</div>
+      Generating questions...
+    </div>
+    <div id="quiz-questions" style="display:none"></div>
+    <div id="quiz-result" style="display:none"></div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button onclick="closeQuiz()" style="flex:1;padding:12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer">Close</button>
+      <button id="quiz-submit-btn" onclick="submitQuiz()" style="display:none;flex:1;padding:12px;background:var(--accent);border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer">Submit →</button>
+      <button id="quiz-resume-btn" onclick="closeQuiz(true)" style="display:none;flex:2;padding:12px;background:var(--accent);border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer">▶ Resume Reading</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE MODAL -->
+<div class="modal-overlay hidden" id="share-modal">
+  <div class="modal-card" style="width:min(500px,95vw);text-align:center;background:var(--bg-card);border-radius:var(--radius-lg);padding:24px;border:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="font-size:18px;font-weight:700">📤 Share Your Stats</h2>
+      <button onclick="document.getElementById('share-modal').classList.add('hidden')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <canvas id="share-canvas" style="max-width:100%;border-radius:12px;display:block;margin:0 auto 16px"></canvas>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button onclick="downloadShareCard()" style="padding:12px 24px;background:var(--accent);border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer">⬇ Download PNG</button>
+      <button onclick="nativeShare()" id="native-share-btn" style="display:none;padding:12px 24px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer">📤 Share</button>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:12px">Tag us @warpreader 🚀</div>
   </div>
 </div>
 
