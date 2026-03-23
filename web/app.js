@@ -1031,28 +1031,77 @@ document.getElementById('rsvp-window').addEventListener('touchend', e => {
 function esc(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''; }
 
 // ── CATCH ME UP ──
+// ── TEXT CLEANING ──
+// Strips PDF extraction artifacts before summarising:
+//   • Standalone page numbers and chapter/section headers
+//   • Broken hyphenation (e.g. "commer - cially" → "commercially")
+//   • Consecutive duplicate words (e.g. "designs, designs" → "designs")
+//   • Leading/trailing noise words and excessive whitespace
+function cleanExtractedText(raw) {
+  let t = raw;
+
+  // 1. Fix soft-hyphen line breaks: "word -\s*word2" → "wordword2"
+  //    Handles both "commer - cially" and "some-\nthing"
+  t = t.replace(/(\w+)\s*-\s+([a-z])/g, '$1$2');
+
+  // 2. Remove page-number artifacts:
+  //    Patterns like "248 Chapter 5", "Page 12", bare numbers on their own
+  t = t.replace(/\b(Page|Chapter|Section|Part|Figure|Table|Appendix)\s+\d+[\w.]*/gi, '');
+  t = t.replace(/\b\d{1,4}\s+(Chapter|Section|Part)\b/gi, '');
+  // Standalone integers that aren't part of a sentence (preceded/followed by spaces or punctuation)
+  t = t.replace(/(^|\s)\d{1,4}(\s|$)/g, ' ');
+
+  // 3. Remove consecutive duplicate words/phrases (handles "designs, designs")
+  t = t.replace(/\b(\w[\w']*)(,?\s+\1)+\b/gi, '$1');
+
+  // 4. Collapse multiple spaces, strip leading/trailing whitespace
+  t = t.replace(/\s{2,}/g, ' ').trim();
+
+  return t;
+}
+
+// ── FALLBACK SUMMARY (no API key) ──
+// Extracts the most coherent complete sentences from cleaned text.
+// Prefers: first sentence + a middle sentence + last sentence.
+function buildFallbackSummary(cleanText, seconds) {
+  const sentences = cleanText.match(/[A-Z][^.!?]{15,}[.!?]/g) || [];
+  if (sentences.length === 0) {
+    // Last resort: first 60 words
+    return cleanText.split(' ').slice(0, 60).join(' ') + '…';
+  }
+  if (sentences.length <= 3) return sentences.join(' ');
+  // Pick beginning, middle, end for good coverage
+  const picks = [
+    sentences[0],
+    sentences[Math.floor(sentences.length / 2)],
+    sentences[sentences.length - 1]
+  ];
+  return picks.join(' ');
+}
+
 async function catchMeUp(seconds = 30) {
   if (state === 'playing') pause();
   const cutoff = Date.now() - seconds * 1000;
-  const recentWords = wordBuffer
+  const rawWords = wordBuffer
     .filter(e => e.timestamp >= cutoff)
     .map(e => e.word)
     .join(' ');
-  if (recentWords.split(' ').length < 10) {
+  if (rawWords.split(' ').length < 10) {
     showToast('Not enough text to summarize yet');
     return;
   }
+  const cleanText = cleanExtractedText(rawWords);
   showCatchUpModal('loading', seconds);
   try {
-    const summary = await getSummary(recentWords, seconds);
+    const summary = await getSummary(cleanText, seconds);
     showCatchUpModal('result', seconds, summary);
   } catch (e) {
-    showCatchUpModal('fallback', seconds, recentWords.split(' ').slice(-40).join(' ') + '...');
+    showCatchUpModal('result', seconds, buildFallbackSummary(cleanText, seconds));
   }
 }
 
-async function getSummary(text, seconds) {
-  const wordCount = text.split(' ').length;
+async function getSummary(cleanText, seconds) {
+  const maxTokens = seconds >= 60 ? 200 : 130;
   if (window.OPENAI_API_KEY) {
     const resp = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -1062,20 +1111,25 @@ async function getSummary(text, seconds) {
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        messages: [{
-          role: 'user',
-          content: `Summarize this passage in 2-3 clear sentences. Be direct and capture the key points:\n\n${text}`
-        }],
-        max_tokens: 150,
-        temperature: 0.3
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a reading assistant helping a speed reader recall what they just read. Write a concise, clear recap — not a summary of the whole book, just the specific ideas in this passage. Use plain language. 2-3 sentences maximum. Ignore any stray numbers, page references, or formatting artifacts in the source text.'
+          },
+          {
+            role: 'user',
+            content: `The reader just covered this passage at speed. Write a recap that captures the key ideas clearly:\n\n${cleanText}`
+          }
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.25
       })
     });
     const data = await resp.json();
-    return data.choices[0].message.content;
+    if (data.choices && data.choices[0]) return data.choices[0].message.content.trim();
+    throw new Error('bad response');
   }
-  const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
-  if (sentences.length <= 3) return text;
-  return [sentences[0], sentences[Math.floor(sentences.length/2)], sentences[sentences.length-1]].join(' ');
+  return buildFallbackSummary(cleanText, seconds);
 }
 
 function showCatchUpModal(modalState, seconds, content = '') {
@@ -1083,7 +1137,7 @@ function showCatchUpModal(modalState, seconds, content = '') {
   const loading = document.getElementById('catchup-loading');
   const result = document.getElementById('catchup-result');
   const title = document.getElementById('catchup-title');
-  title.textContent = `Last ${seconds} seconds`;
+  title.textContent = `What you just read${seconds === 30 ? ' (30s)' : ' (60s)'}`;
   modal.classList.remove('hidden');
   if (modalState === 'loading') {
     loading.style.display = 'flex';
