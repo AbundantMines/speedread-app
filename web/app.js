@@ -586,7 +586,11 @@ async function handleFile(file) {
     }
   } catch(err) {
     setStatus('hidden');
-    showToast('⚠️ Error loading file. Try pasting the text instead.', 5000);
+    if (err.message === 'DRM_PROTECTED') {
+      showToast('🔒 This ePub is DRM-protected and can\'t be opened directly. Try: (1) the PDF version, (2) remove DRM with Calibre, or (3) paste the text.', 8000);
+    } else {
+      showToast('⚠️ Error loading file. Try pasting the text instead.', 5000);
+    }
     console.error(err);
   }
 }
@@ -1031,7 +1035,7 @@ const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+dropZone.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
 fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
 document.addEventListener('dragover', e => e.preventDefault());
 document.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });

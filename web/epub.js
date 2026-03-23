@@ -17,7 +17,13 @@ async function loadJSZip() {
 async function extractEpubText(file) {
   const JSZip = await loadJSZip();
   const zip = await JSZip.loadAsync(file);
-  
+
+  // Check for DRM encryption before doing anything else
+  const encryptionXml = await zip.file('META-INF/encryption.xml')?.async('string');
+  if (encryptionXml && encryptionXml.includes('EncryptedData')) {
+    throw new Error('DRM_PROTECTED');
+  }
+
   // 1. Parse container.xml to find OPF file path
   const containerXml = await zip.file('META-INF/container.xml')?.async('string');
   if (!containerXml) throw new Error('Invalid ePub: no container.xml');
