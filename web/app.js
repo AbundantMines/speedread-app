@@ -625,6 +625,10 @@ async function loadPDF(file) {
 }
 
 function processText(text) {
+  // Apply academic citation stripping if mode is on
+  if (typeof text === 'string' && isAcademicMode()) {
+    text = stripAcademicCitations(text);
+  }
   words = (typeof text === 'string') ? text.split(/\s+/).filter(w => w.length > 0) : text;
   if (!pageBoundaries.length) pageBoundaries = [{ page: 1, startIdx: 0 }];
   if (typeof wrTrack === 'function') wrTrack('doc_loaded', { word_count: words.length, wpm_current: wpm });
@@ -1090,8 +1094,43 @@ function esc(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 //   • Broken hyphenation (e.g. "commer - cially" → "commercially")
 //   • Consecutive duplicate words (e.g. "designs, designs" → "designs")
 //   • Leading/trailing noise words and excessive whitespace
+//   • Academic: footnotes, running headers, bibliography sections, ligature artifacts
 function cleanExtractedText(raw) {
   let t = raw;
+
+  // 0. Fix ligature artifacts from PDF extraction
+  t = t.replace(/ﬁ/g, 'fi').replace(/ﬂ/g, 'fl').replace(/ﬀ/g, 'ff')
+       .replace(/ﬃ/g, 'ffi').replace(/ﬄ/g, 'ffl');
+
+  // 0b. Remove bibliography/references section (everything after a standalone header)
+  t = t.replace(/(\n|^)(References|Bibliography|Works Cited|Notes)\s*(\n|$)[\s\S]*/i, '');
+
+  // 0c. Remove full footnote blocks: lines starting with ¹²³ superscripts or [1] patterns
+  t = t.replace(/^[\u00B9\u00B2\u00B3\u2070-\u2079\u00B9]+\s+.+$/gm, '');
+  t = t.replace(/^\[\d+(?:,\s*\d+)*\]\s+.+$/gm, '');
+
+  // 0d. Remove running headers/footers: repeated short lines (< 6 words) appearing 2+ times
+  const lines = t.split('\n');
+  const lineCount = {};
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.length > 0 && trimmed.split(/\s+/).length < 6) {
+      lineCount[trimmed] = (lineCount[trimmed] || 0) + 1;
+    }
+  }
+  const repeatedLines = new Set(Object.keys(lineCount).filter(l => lineCount[l] >= 2));
+  t = lines.filter(line => !repeatedLines.has(line.trim())).join('\n');
+
+  // 0e. Remove standalone page numbers: bare numbers, "— 248 —", "p. 248", "pp. 45–67"
+  t = t.replace(/^[\s\u2014\-]*\d{1,4}[\s\u2014\-]*$/gm, '');          // bare / em-dash wrapped
+  t = t.replace(/\bpp?\.\s*\d+(?:[–\-]\d+)?/g, '');                     // p. 248 / pp. 45–67
+  t = t.replace(/\u2014\s*\d{1,4}\s*\u2014/g, '');                      // — 248 —
+
+  // 0f. Remove inline footnote reference markers mid-sentence
+  //     Superscript unicode: ¹²³⁴⁵⁶⁷⁸⁹⁰, bracketed numbers [1], [2,3], symbols *, †, ‡
+  t = t.replace(/[\u00B9\u00B2\u00B3\u2074-\u2079\u2070]+/g, '');       // superscript digits
+  t = t.replace(/\[(\d+(?:[,\s]\d+)*)\]/g, '');                         // [1], [2,3]
+  t = t.replace(/(?<=\S)[*†‡]/g, '');                                    // mid-sentence symbols
 
   // 1. Fix soft-hyphen line breaks: "word -\s*word2" → "wordword2"
   //    Handles both "commer - cially" and "some-\nthing"
@@ -1108,6 +1147,62 @@ function cleanExtractedText(raw) {
   t = t.replace(/\b(\w[\w']*)(,?\s+\1)+\b/gi, '$1');
 
   // 4. Collapse multiple spaces, strip leading/trailing whitespace
+  t = t.replace(/\n{3,}/g, '\n\n');
+  t = t.replace(/\s{2,}/g, ' ').trim();
+
+  return t;
+}
+
+// ── ACADEMIC MODE ──
+// Strips citation noise for academic readers.
+// Toggle persisted in localStorage key "academicMode".
+
+function isAcademicMode() {
+  return localStorage.getItem('academicMode') === 'true';
+}
+
+function toggleAcademicMode() {
+  const next = !isAcademicMode();
+  localStorage.setItem('academicMode', next ? 'true' : 'false');
+  updateAcademicBtn();
+}
+
+function updateAcademicBtn() {
+  const btn = document.getElementById('academic-mode-btn');
+  if (!btn) return;
+  if (isAcademicMode()) {
+    btn.style.background = '#f97316';
+    btn.style.color = '#fff';
+    btn.style.borderColor = '#f97316';
+    btn.title = 'Academic Mode: ON — citations stripped';
+  } else {
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+    btn.title = 'Academic Mode: OFF — click to strip citations';
+  }
+}
+
+function stripAcademicCitations(text) {
+  let t = text;
+
+  // Parenthetical citations with author name(s) + year
+  // (Smith, 2019), (Jones et al., 2021), (Smith & Jones, 2019, pp. 45-67)
+  t = t.replace(/\((?:see\s+|cf\.\s+)?[A-Z][a-záéíóú\-]+(?:\s+(?:&|and|et)\s+(?:al\.|[A-Z][a-z]+))*(?:,?\s*et al\.)?(?:,\s*\d{4}(?:[,\s]+pp?\.\s*\d+(?:[–\-]\d+)?)?)?\)/g, '');
+
+  // (ibid.), (op. cit.), (loc. cit.)
+  t = t.replace(/\((?:ibid|op\. cit|loc\. cit)\.?\)/gi, '');
+
+  // Numbered references: [1], [2], [1, 2, 3], [1-4]
+  t = t.replace(/\[\d+(?:[,\-]\s*\d+)*\]/g, '');
+
+  // "et al." standalone
+  t = t.replace(/\bet al\.\s*/g, '');
+
+  // DOI references: doi:10.xxxx/xxxxx
+  t = t.replace(/\bdoi:\S+/gi, '');
+
+  // Collapse extra whitespace left by removals
   t = t.replace(/\s{2,}/g, ' ').trim();
 
   return t;
@@ -2251,6 +2346,7 @@ window.addEventListener('DOMContentLoaded', () => {
   updateTrialBanner();
   refreshHistory();
   loadLibrary();
+  updateAcademicBtn();
 
   // Restore font
   const savedFont = localStorage.getItem('speedread_font');

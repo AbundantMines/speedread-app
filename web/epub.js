@@ -72,25 +72,60 @@ async function extractEpubText(file) {
     if (!fileContent) continue;
     
     // Strip HTML/XHTML tags and extract text
-    const text = fileContent
-      // Remove head section entirely  
-      .replace(/<head[\s\S]*?<\/head>/gi, '')
+    const text = (() => {
+      let s = fileContent;
+
+      // Remove head section entirely
+      s = s.replace(/<head[\s\S]*?<\/head>/gi, '');
+
+      // Strip semantic non-prose elements entirely (remove tags AND their content)
+      // aside, figure, figcaption, footer, nav, header (running heads)
+      s = s.replace(/<aside[\s\S]*?<\/aside>/gi, '');
+      s = s.replace(/<figure[\s\S]*?<\/figure>/gi, '');
+      s = s.replace(/<figcaption[\s\S]*?<\/figcaption>/gi, '');
+      s = s.replace(/<footer[\s\S]*?<\/footer>/gi, '');
+      s = s.replace(/<nav[\s\S]*?<\/nav>/gi, '');
+      s = s.replace(/<header[\s\S]*?<\/header>/gi, '');
+
+      // Strip elements by epub:type footnote/endnote/noteref (whole element + content)
+      s = s.replace(/<[^>]+epub:type="(?:footnote|endnote|noteref)"[\s\S]*?<\/\w+>/gi, '');
+      s = s.replace(/<[^>]+epub:type='(?:footnote|endnote|noteref)'[\s\S]*?<\/\w+>/gi, '');
+
+      // Strip page break markers
+      s = s.replace(/<[^>]+epub:type="pagebreak"[^>]*\/>/gi, '');
+      s = s.replace(/<[^>]+epub:type="pagebreak"[^>]*>[\s\S]*?<\/\w+>/gi, '');
+
+      // Strip elements with footnote/endnote/note/fn-/ref classes (whole element + content)
+      s = s.replace(/<(\w+)[^>]+class="[^"]*(?:footnote|endnote|\bfn-|\bnote\b|endref|noteref)[^"]*"[^>]*>[\s\S]*?<\/\1>/gi, '');
+      s = s.replace(/<(\w+)[^>]+class='[^']*(?:footnote|endnote|\bfn-|\bnote\b|endref|noteref)[^']*'[^>]*>[\s\S]*?<\/\1>/gi, '');
+
       // Convert block elements to newlines
-      .replace(/<\/?(p|div|h[1-6]|br|li|tr|section|article|chapter)[^>]*>/gi, '\n')
+      s = s.replace(/<\/?(p|div|h[1-6]|br|li|tr|section|article|chapter)[^>]*>/gi, '\n');
+
       // Remove all remaining tags
-      .replace(/<[^>]+>/g, '')
+      s = s.replace(/<[^>]+>/g, '');
+
       // Decode HTML entities
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&#(\d+);/g, (m, n) => String.fromCharCode(n))
-      .replace(/&quot;/g, '"')
-      .replace(/&apos;/g, "'")
+      s = s.replace(/&amp;/g, '&')
+           .replace(/&lt;/g, '<')
+           .replace(/&gt;/g, '>')
+           .replace(/&nbsp;/g, ' ')
+           .replace(/&#(\d+);/g, (m, n) => String.fromCharCode(n))
+           .replace(/&quot;/g, '"')
+           .replace(/&apos;/g, "'");
+
       // Clean up whitespace
-      .replace(/[ \t]+/g, ' ')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
+      s = s.replace(/[ \t]+/g, ' ')
+           .replace(/\n{3,}/g, '\n\n')
+           .trim();
+
+      // Apply academic text cleaning (page numbers, footnote markers, ligatures, etc.)
+      if (typeof cleanExtractedText === 'function') {
+        s = cleanExtractedText(s);
+      }
+
+      return s;
+    })();
     
     if (text.length > 50) {
       fullText += text + '\n\n';
