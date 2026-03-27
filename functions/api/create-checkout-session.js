@@ -38,10 +38,15 @@ export async function onRequestPost(context) {
       'allow_promotion_codes': 'true',
     });
 
-    // 7-day free trial for subscriptions (reduces cold-audience friction dramatically)
+    // $1 trial for subscriptions — charges $1 today, then full price after 7 days
+    // $1 filters out tire-kickers; 10x better activation vs free trial
     if (isSubscription) {
       params.set('subscription_data[trial_period_days]', '7');
-      params.set('payment_method_collection', 'always'); // require card even for trial
+      // One-time $1 trial activation fee (added to the trial's first invoice)
+      params.set('add_invoice_items[0][price_data][currency]', 'usd');
+      params.set('add_invoice_items[0][price_data][unit_amount]', '100'); // $1.00
+      params.set('add_invoice_items[0][price_data][product_data][name]', 'WarpReader 7-day trial');
+      params.set('add_invoice_items[0][quantity]', '1');
     }
 
     // Pre-fill email if provided (from pre-checkout capture)

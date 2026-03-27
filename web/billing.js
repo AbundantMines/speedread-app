@@ -98,7 +98,8 @@ function _showPreCheckoutModal() {
   const existing = document.getElementById('pre-checkout-modal');
   if (existing) { existing.remove(); }
 
-  const planLabels = { pro_monthly: 'Pro ($4.99/mo)', pro_annual: 'Pro Annual ($39.99/yr)', lifetime: 'Lifetime ($99)' };
+  const isLifetime = _pendingCheckoutPlan === 'lifetime';
+  const planLabels = { pro_monthly: '$1 today → $4.99/mo', pro_annual: '$1 today → $39.99/yr', lifetime: '$99 one-time' };
   const label = planLabels[_pendingCheckoutPlan] || 'Pro';
 
   const overlay = document.createElement('div');
@@ -106,14 +107,15 @@ function _showPreCheckoutModal() {
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px';
   overlay.innerHTML = `
     <div style="background:var(--bg-card,#1a1a2e);border:1px solid var(--border,#333);border-radius:18px;padding:32px 28px;max-width:400px;width:100%;text-align:center">
-      <div style="font-size:2rem;margin-bottom:8px">⚡</div>
-      <h3 style="font-size:1.25rem;font-weight:800;margin-bottom:6px">Almost there</h3>
-      <p style="color:var(--text-muted,#888);font-size:.9rem;margin-bottom:20px">Enter your email to start — we'll send your receipt and progress reports.</p>
+      <div style="font-size:2rem;margin-bottom:8px">${isLifetime ? '🔑' : '⚡'}</div>
+      <h3 style="font-size:1.25rem;font-weight:800;margin-bottom:6px">${isLifetime ? 'Almost there' : 'Start your 7-day trial for $1'}</h3>
+      <p style="color:var(--text-muted,#888);font-size:.9rem;margin-bottom:20px">${isLifetime ? 'Enter your email — we\'ll send your receipt.' : '$1 today. Then ${label.split('→')[1]?.trim() || label} after 7 days. Cancel anytime before day 7.'}</p>
       <input type="email" id="pre-checkout-email" placeholder="your@email.com" autocomplete="email"
         style="width:100%;box-sizing:border-box;background:var(--bg-elevated,#111);border:1px solid var(--border,#333);border-radius:10px;padding:12px 14px;color:var(--text,#fff);font-size:1rem;margin-bottom:12px">
       <button onclick="_submitPreCheckout()" style="width:100%;background:var(--accent,#c9a84c);color:#000;border:none;border-radius:10px;padding:13px;font-weight:800;font-size:1rem;cursor:pointer">
-        Continue to ${label} →
+        ${isLifetime ? 'Continue →' : 'Start 7-Day Trial — $1 →'}
       </button>
+      <div style="font-size:.75rem;color:var(--text-muted,#666);margin-top:8px">${isLifetime ? '' : '7-day trial · $1 today · cancel before day 7 to pay nothing more'}</div>
       <button onclick="document.getElementById('pre-checkout-modal').remove()" style="background:none;border:none;color:var(--text-muted,#888);cursor:pointer;font-size:.85rem;margin-top:12px;display:block;width:100%">Cancel</button>
     </div>
   `;

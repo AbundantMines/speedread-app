@@ -159,12 +159,12 @@
       </div>
 
       <div class="cta-section">
-        <h3 id="cta-headline">Start your 7-day free trial</h3>
-        <p id="cta-sub">Train with WarpReader for 7 days free. Most readers hit <strong id="cta-target-wpm">350+</strong> WPM in their first month.</p>
+        <h3 id="cta-headline">Start training — 7 days for $1</h3>
+        <p id="cta-sub">Most readers hit <strong id="cta-target-wpm">350+</strong> WPM in their first month. $1 today, cancel before day 7 and owe nothing more.</p>
         <button onclick="openCheckout('pro_annual')" class="btn btn-primary" style="padding:16px 48px;font-size:1.05rem;font-weight:700;border:none;cursor:pointer">
-          Start Free Trial — $0 Today →
+          Try 7 Days for $1 →
         </button>
-        <div style="font-size:.8rem;color:var(--text-muted);margin-top:8px">7 days free, then $39.99/yr ($3.33/mo). Cancel anytime.</div>
+        <div style="font-size:.8rem;color:var(--text-muted);margin-top:8px">$1 today · then $39.99/yr ($3.33/mo) · cancel before day 7 to pay nothing more</div>
         <br><a href="/app.html?utm_source=wpm_test&utm_medium=cta_secondary" style="color:var(--text-muted);font-size:.85rem">Or try the free version →</a>
         <br><span class="retake-link" onclick="retakeTest()">↺ Retake the test</span>
       </div>
@@ -269,14 +269,14 @@
     const targetWpm = Math.min(p30d, 500);
     document.getElementById('cta-target-wpm').textContent = targetWpm + '+';
     if (pct < 40) {
-      document.getElementById('cta-headline').textContent = 'You can double your reading speed — free trial';
-      document.getElementById('cta-sub').innerHTML = `Most readers at your level reach <strong>${targetWpm} WPM</strong> within 30 days. 7-day free trial, no risk.`;
+      document.getElementById('cta-headline').textContent = 'You can double your speed — try it for $1';
+      document.getElementById('cta-sub').innerHTML = `Most readers at your level reach <strong>${targetWpm} WPM</strong> within 30 days. $1 today, cancel before day 7 to pay nothing more.`;
     } else if (pct < 70) {
       document.getElementById('cta-headline').textContent = 'You\'re above average — now go elite';
-      document.getElementById('cta-sub').innerHTML = `Push to <strong>${targetWpm} WPM</strong> with WarpReader's 28-day training. Free for 7 days.`;
+      document.getElementById('cta-sub').innerHTML = `Push to <strong>${targetWpm} WPM</strong> with WarpReader's 28-day training. $1 today, cancel anytime.`;
     } else {
       document.getElementById('cta-headline').textContent = 'You\'re already fast — now go faster';
-      document.getElementById('cta-sub').innerHTML = `Top readers use WarpReader to maintain and push past <strong>${targetWpm} WPM</strong>. Free trial, cancel anytime.`;
+      document.getElementById('cta-sub').innerHTML = `Top readers use WarpReader to maintain and push past <strong>${targetWpm} WPM</strong>. $1 today · cancel before day 7 if not for you.`;
     }
 
     // Store result

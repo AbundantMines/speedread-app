@@ -262,7 +262,7 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
 
 <!-- LAUNCH BANNER -->
 <div id="launch-banner" style="background:linear-gradient(90deg,#c9a84c,#e8c06a);color:#000;text-align:center;padding:10px 16px;font-size:.88rem;font-weight:700;position:relative">
-  🚀 Launch offer: 7-day free trial · Lifetime access $99 (limited time)
+  🚀 Launch offer: Try 7 days for $1 · Lifetime access $99
   <a href="/test" style="color:#000;text-decoration:underline;margin-left:10px">Find your reading speed →</a>
   <button onclick="document.getElementById('launch-banner').remove()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#000;opacity:.6" title="Dismiss">✕</button>
 </div>
@@ -287,9 +287,9 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
   <p class="sub">High-performers read 4–5× more than average. Warpreader multiplies your throughput without cutting comprehension — so you absorb more of what matters, faster than the competition.</p>
   <div class="hero-ctas">
     <a href="/test" class="btn btn-gold">Find your reading speed →</a>
-    <button onclick="openCheckout('pro_annual')" class="btn btn-ghost" style="cursor:pointer;border:none">Start 7-day free trial</button>
+    <button onclick="openCheckout('pro_annual')" class="btn btn-ghost" style="cursor:pointer;border:none">Try 7 days for $1</button>
   </div>
-  <p class="social-proof">7-day free trial · then $3.33/mo · cancel before day 7 and pay nothing</p>
+  <p class="social-proof">$1 today · then $3.33/mo · cancel before day 7 and pay nothing more</p>
   <div class="rsvp-demo">
     <div class="word rsvp-word" id="rsvp-preview-word">the</div>
     <div class="wpm-label">RSVP preview · 120 WPM</div>
@@ -514,7 +514,7 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
         <li>Advanced analytics</li>
         <li>Priority support</li>
       </ul>
-      <button onclick="openCheckout(annual?'pro_annual':'pro_monthly')" id="pro-cta-btn" class="btn btn-gold" style="border:none;cursor:pointer;width:100%">Start Free Trial →</button>
+      <button onclick="openCheckout(annual?'pro_annual':'pro_monthly')" id="pro-cta-btn" class="btn btn-gold" style="border:none;cursor:pointer;width:100%">Try 7 Days for $1 →</button>
     </div>
     <div class="price-card">
       <h3>Lifetime</h3>
@@ -793,7 +793,7 @@ function toggleBilling(){
   document.getElementById('billing-toggle').classList.toggle('active',annual);
   document.getElementById('pro-price').innerHTML=annual?'$39.99<span class="period">/yr</span>':'$4.99<span class="period">/mo</span>';
   var proBtn=document.getElementById('pro-cta-btn');
-  if(proBtn) proBtn.textContent = annual ? 'Start Free Trial →' : 'Start Free Trial →';
+  if(proBtn) proBtn.textContent = 'Try 7 Days for $1 →';
 }
 
 /* LANDING LEAD CAPTURE */
