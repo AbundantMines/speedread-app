@@ -154,14 +154,18 @@
           <p style="font-size:.78rem;color:var(--text-muted);margin-top:8px">No spam. Unsubscribe any time.</p>
         </div>
         <div class="capture-success" id="capture-success">
-          ✅ Plan sent! Check your inbox. <a href="/app.html?utm_source=wpm_test&utm_medium=cta" style="color:var(--accent)">Start reading free now →</a>
+          ✅ Got it! Taking you to your free trial…
         </div>
       </div>
 
       <div class="cta-section">
-        <h3>Start training today — it's free</h3>
-        <p>61,000 books built in. 28-day course included. No app download needed.</p>
-        <a href="/app.html?utm_source=wpm_test&utm_medium=cta" class="btn btn-primary" style="padding:16px 48px;font-size:1.05rem;font-weight:700">Start Reading Free →</a>
+        <h3 id="cta-headline">Start your 7-day free trial</h3>
+        <p id="cta-sub">Train with WarpReader for 7 days free. Most readers hit <strong id="cta-target-wpm">350+</strong> WPM in their first month.</p>
+        <button onclick="openCheckout('pro_annual')" class="btn btn-primary" style="padding:16px 48px;font-size:1.05rem;font-weight:700;border:none;cursor:pointer">
+          Start Free Trial — $0 Today →
+        </button>
+        <div style="font-size:.8rem;color:var(--text-muted);margin-top:8px">7 days free, then $39.99/yr ($3.33/mo). Cancel anytime.</div>
+        <br><a href="/app.html?utm_source=wpm_test&utm_medium=cta_secondary" style="color:var(--text-muted);font-size:.85rem">Or try the free version →</a>
         <br><span class="retake-link" onclick="retakeTest()">↺ Retake the test</span>
       </div>
     </div>
@@ -261,6 +265,20 @@
     document.getElementById('capture-from').textContent = wpm;
     document.getElementById('capture-to').textContent = Math.min(p30d, 500);
 
+    // Dynamic CTA copy based on result
+    const targetWpm = Math.min(p30d, 500);
+    document.getElementById('cta-target-wpm').textContent = targetWpm + '+';
+    if (pct < 40) {
+      document.getElementById('cta-headline').textContent = 'You can double your reading speed — free trial';
+      document.getElementById('cta-sub').innerHTML = `Most readers at your level reach <strong>${targetWpm} WPM</strong> within 30 days. 7-day free trial, no risk.`;
+    } else if (pct < 70) {
+      document.getElementById('cta-headline').textContent = 'You\'re above average — now go elite';
+      document.getElementById('cta-sub').innerHTML = `Push to <strong>${targetWpm} WPM</strong> with WarpReader's 28-day training. Free for 7 days.`;
+    } else {
+      document.getElementById('cta-headline').textContent = 'You\'re already fast — now go faster';
+      document.getElementById('cta-sub').innerHTML = `Top readers use WarpReader to maintain and push past <strong>${targetWpm} WPM</strong>. Free trial, cancel anytime.`;
+    }
+
     // Store result
     try { localStorage.setItem('speedread_wpm_test', JSON.stringify({ wpm, pct, ts: new Date().toISOString() })); } catch(_) {}
   }
@@ -288,6 +306,12 @@
 
     document.getElementById('capture-form-wrap').style.display = 'none';
     document.getElementById('capture-success').style.display = 'block';
+
+    // After capturing email, auto-open checkout (hot moment — they just confirmed intent)
+    localStorage.setItem('wr_lead_email', email);
+    setTimeout(() => {
+      if (typeof openCheckout === 'function') openCheckout('pro_annual', email);
+    }, 1200); // short delay so they see the success state first
   }
 
   function retakeTest() {
@@ -310,6 +334,8 @@
 </script>
 
 <!-- Analytics -->
+<script src="https://js.stripe.com/v3/"></script>
+<script src="/billing.js"></script>
 <script src="/analytics.js" defer></script>
 
 </body>

@@ -13,7 +13,7 @@ export async function onRequestPost(context) {
   };
 
   try {
-    const { priceId, plan, userId, successUrl, cancelUrl } = await request.json();
+    const { priceId, plan, userId, email, successUrl, cancelUrl } = await request.json();
 
     if (!STRIPE_SK) {
       return new Response(JSON.stringify({ error: 'Stripe not configured' }), {
@@ -27,14 +27,26 @@ export async function onRequestPost(context) {
     }
 
     // Build Stripe Checkout session via form-encoded API
+    const isSubscription = plan !== 'lifetime';
+
     const params = new URLSearchParams({
-      mode: plan === 'lifetime' ? 'payment' : 'subscription',
+      mode: isSubscription ? 'subscription' : 'payment',
       'line_items[0][price]': priceId,
       'line_items[0][quantity]': '1',
       success_url: (successUrl || 'https://warpreader.com/app.html') + '?upgraded=true&session_id={CHECKOUT_SESSION_ID}',
       cancel_url:  cancelUrl  || 'https://warpreader.com/app.html',
       'allow_promotion_codes': 'true',
     });
+
+    // 7-day free trial for subscriptions (reduces cold-audience friction dramatically)
+    if (isSubscription) {
+      params.set('subscription_data[trial_period_days]', '7');
+      params.set('payment_method_collection', 'always'); // require card even for trial
+    }
+
+    // Pre-fill email if provided (from pre-checkout capture)
+    if (email) params.set('customer_email', email);
+
     if (userId) params.set('client_reference_id', userId);
 
     const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {

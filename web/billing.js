@@ -28,16 +28,15 @@ function initBilling() {
 
 /**
  * Open Stripe Checkout for a given plan.
+ * If user email not known, capture it first then proceed.
  * @param {'pro_monthly'|'pro_annual'|'lifetime'} plan
+ * @param {string} [knownEmail] - pre-fill email (skips capture modal)
  */
-async function openCheckout(plan) {
+async function openCheckout(plan, knownEmail) {
   const planPrices = { pro_monthly: 4.99, pro_annual: 39.99, lifetime: 99 };
   if (typeof wrTrack === 'function') wrTrack('checkout_start', { plan, price: planPrices[plan] || 0 });
 
-  if (!stripeInstance) {
-    showUpgradeModal();
-    return;
-  }
+  if (!stripeInstance) { showUpgradeModal(); return; }
 
   const priceId = PRICE_IDS[plan];
   if (!priceId || priceId.startsWith('price_YOUR_')) {
@@ -45,9 +44,21 @@ async function openCheckout(plan) {
     return;
   }
 
-  // In production, you'd call your server to create a Checkout Session.
-  // For client-only demo, we redirect to Stripe Checkout via the API.
-  // This requires a server endpoint. For now, show a placeholder.
+  // ── Pre-checkout email capture (if we don't have it) ──
+  const existingEmail = knownEmail
+    || (typeof currentUser !== 'undefined' && currentUser?.email)
+    || localStorage.getItem('wr_lead_email');
+
+  if (!existingEmail) {
+    _pendingCheckoutPlan = plan;
+    _showPreCheckoutModal();
+    return; // modal will call openCheckout(plan, email) on submit
+  }
+
+  // ── Persist email for abandon recovery ──
+  localStorage.setItem('wr_lead_email', existingEmail);
+  if (typeof wrTrack === 'function') wrTrack('checkout_email_captured', { plan });
+
   try {
     const response = await fetch('/api/create-checkout-session', {
       method: 'POST',
@@ -55,17 +66,61 @@ async function openCheckout(plan) {
       body: JSON.stringify({
         priceId,
         plan,
-        userId: currentUser?.id,
+        email: existingEmail,
+        userId: (typeof currentUser !== 'undefined' && currentUser?.id) || null,
         successUrl: window.location.origin + '/app.html?upgraded=true',
-        cancelUrl: window.location.origin + '/app.html',
+        cancelUrl: window.location.href,
       })
     });
     const session = await response.json();
-    await stripeInstance.redirectToCheckout({ sessionId: session.id });
+    if (session.error) throw new Error(session.error);
+    // Use session.url (modern redirect) — more reliable than redirectToCheckout
+    window.location.href = session.url;
   } catch (e) {
     console.error('[Warpreader Billing] Checkout error:', e);
-    alert('Checkout is not available yet. Server endpoint needed.');
+    if (typeof showToast === 'function') showToast('Something went wrong. Please try again.', 4000);
+    else alert('Something went wrong. Please try again.');
   }
+}
+
+// ── Pre-checkout email modal ──
+let _pendingCheckoutPlan = null;
+
+function _showPreCheckoutModal() {
+  const existing = document.getElementById('pre-checkout-modal');
+  if (existing) { existing.remove(); }
+
+  const planLabels = { pro_monthly: 'Pro ($4.99/mo)', pro_annual: 'Pro Annual ($39.99/yr)', lifetime: 'Lifetime ($99)' };
+  const label = planLabels[_pendingCheckoutPlan] || 'Pro';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'pre-checkout-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML = `
+    <div style="background:var(--bg-card,#1a1a2e);border:1px solid var(--border,#333);border-radius:18px;padding:32px 28px;max-width:400px;width:100%;text-align:center">
+      <div style="font-size:2rem;margin-bottom:8px">⚡</div>
+      <h3 style="font-size:1.25rem;font-weight:800;margin-bottom:6px">Almost there</h3>
+      <p style="color:var(--text-muted,#888);font-size:.9rem;margin-bottom:20px">Enter your email to start — we'll send your receipt and progress reports.</p>
+      <input type="email" id="pre-checkout-email" placeholder="your@email.com" autocomplete="email"
+        style="width:100%;box-sizing:border-box;background:var(--bg-elevated,#111);border:1px solid var(--border,#333);border-radius:10px;padding:12px 14px;color:var(--text,#fff);font-size:1rem;margin-bottom:12px">
+      <button onclick="_submitPreCheckout()" style="width:100%;background:var(--accent,#c9a84c);color:#000;border:none;border-radius:10px;padding:13px;font-weight:800;font-size:1rem;cursor:pointer">
+        Continue to ${label} →
+      </button>
+      <button onclick="document.getElementById('pre-checkout-modal').remove()" style="background:none;border:none;color:var(--text-muted,#888);cursor:pointer;font-size:.85rem;margin-top:12px;display:block;width:100%">Cancel</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('pre-checkout-email')?.focus(), 100);
+}
+
+function _submitPreCheckout() {
+  const email = document.getElementById('pre-checkout-email')?.value?.trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    document.getElementById('pre-checkout-email')?.focus();
+    return;
+  }
+  document.getElementById('pre-checkout-modal')?.remove();
+  openCheckout(_pendingCheckoutPlan, email);
 }
 
 // ── Check for successful upgrade ──
