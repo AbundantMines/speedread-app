@@ -59,6 +59,14 @@ async function openCheckout(plan, knownEmail) {
   localStorage.setItem('wr_lead_email', existingEmail);
   if (typeof wrTrack === 'function') wrTrack('checkout_email_captured', { plan });
 
+  // ── Server-side lead save (fire-and-forget, never blocks checkout) ──
+  const wpmResult = (() => { try { return JSON.parse(localStorage.getItem('speedread_wpm_test') || '{}').wpm; } catch(_) { return null; } })();
+  fetch('/api/save-lead', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: existingEmail, plan, source: document.referrer || 'direct', wpm: wpmResult })
+  }).catch(() => {});
+
   try {
     const response = await fetch('/api/create-checkout-session', {
       method: 'POST',
