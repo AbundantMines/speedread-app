@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>What's Your Reading Speed? Free WPM Test — WarpReader</title>
+  <meta name="description" content="Take the free 60-second reading speed test. Find out your WPM, see how you rank against other readers, and get your personalized plan to 3× your speed.">
+  <meta property="og:title" content="What's Your Reading Speed? Free WPM Test">
+  <meta property="og:description" content="60-second test. Find your WPM. Get your personalized speed reading plan.">
+  <meta property="og:image" content="/og-image.svg">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .test-hero { text-align: center; padding: 80px 24px 48px; }
+    .test-hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; letter-spacing: -.03em; margin-bottom: 16px; }
+    .test-hero .sub { font-size: 1.15rem; color: var(--text-muted); max-width: 520px; margin: 0 auto 40px; line-height: 1.65; }
+    .avg-badge { display: inline-flex; align-items: center; gap: 8px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 40px; padding: 8px 20px; font-size: .9rem; color: var(--text-muted); margin-bottom: 40px; }
+    .avg-badge strong { color: var(--text); }
+
+    /* Passage */
+    .passage-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; max-width: 680px; margin: 0 auto 32px; padding: 36px 40px; text-align: left; }
+    .passage-box p { font-size: 1.05rem; line-height: 1.8; color: var(--text); }
+    .passage-word-count { font-size: .8rem; color: var(--text-muted); text-align: right; margin-top: 12px; }
+    .passage-overlay { position: relative; }
+    .passage-overlay::after { content: ''; position: absolute; inset: 0; background: var(--bg-card); border-radius: 16px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+    .passage-overlay.blurred::after { opacity: .95; }
+    .blur-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; pointer-events: none; z-index: 2; }
+    .blur-msg p { font-size: 1.05rem; color: var(--text-muted); }
+
+    /* Timer */
+    .timer-display { font-size: 3rem; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; min-width: 100px; display: inline-block; }
+
+    /* Result */
+    .result-box { display: none; max-width: 680px; margin: 0 auto; text-align: center; }
+    .result-wpm { font-size: clamp(3.5rem, 10vw, 6rem); font-weight: 900; color: var(--accent); letter-spacing: -.04em; }
+    .result-label { font-size: 1rem; color: var(--text-muted); margin-bottom: 8px; }
+    .result-percentile { font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
+    .result-context { font-size: .95rem; color: var(--text-muted); margin-bottom: 32px; }
+    .result-projection { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 14px; padding: 24px 28px; margin-bottom: 32px; }
+    .result-projection h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; }
+    .projection-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .projection-row:last-child { border: none; }
+    .projection-row .label { color: var(--text-muted); font-size: .9rem; }
+    .projection-row .value { font-weight: 700; color: var(--accent); }
+
+    /* Email capture */
+    .capture-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 32px; margin-bottom: 32px; }
+    .capture-box h3 { font-size: 1.25rem; font-weight: 800; margin-bottom: 8px; }
+    .capture-box p { color: var(--text-muted); font-size: .95rem; margin-bottom: 20px; }
+    .capture-form { display: flex; gap: 10px; flex-wrap: wrap; }
+    .capture-form input { flex: 1; min-width: 220px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; color: var(--text); font-size: .95rem; }
+    .capture-form input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+    .capture-form button { padding: 12px 24px; }
+    .capture-success { display: none; text-align: center; padding: 12px; color: var(--accent); font-weight: 700; }
+
+    /* Progress bar */
+    .percentile-bar-wrap { margin: 16px 0 28px; }
+    .percentile-bar { height: 8px; background: var(--bg-elevated); border-radius: 4px; overflow: hidden; }
+    .percentile-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #7dd3fc); border-radius: 4px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+    .bar-label { display: flex; justify-content: space-between; font-size: .78rem; color: var(--text-muted); margin-top: 6px; }
+
+    /* Step states */
+    #step-ready, #step-reading, #step-done { }
+    #step-reading, #step-done { display: none; }
+
+    .cta-section { text-align: center; padding: 0 0 80px; }
+    .cta-section h3 { font-size: 1.5rem; font-weight: 800; margin-bottom: 12px; }
+    .cta-section p { color: var(--text-muted); margin-bottom: 24px; }
+
+    /* Retake */
+    .retake-link { display: inline-block; margin-top: 16px; font-size: .9rem; color: var(--text-muted); cursor: pointer; text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="topbar">
+  <div class="topbar-inner">
+    <a href="/" class="logo">⚡ WarpReader</a>
+    <div class="nav-links">
+      <a href="/#pricing">Pricing</a>
+      <a href="/app.html" class="btn btn-primary btn-sm">Start Reading Free</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+<section class="test-hero">
+  <div class="avg-badge">📖 Average reader: <strong>238 WPM</strong> · Most WarpReader users reach <strong>400+ WPM</strong></div>
+  <h1>What's your reading speed?</h1>
+  <p class="sub">Take the 60-second test. Read the passage below at your natural pace — no rushing. We'll calculate your WPM and show you exactly where you rank.</p>
+
+  <!-- STEP 1: Ready -->
+  <div id="step-ready">
+    <div class="passage-box passage-overlay" id="passage-wrap">
+      <p id="passage-text">In the 1960s, a Stanford researcher named Walter Mischel conducted an experiment with four-year-olds that would become one of the most cited studies in psychology. He placed a marshmallow on a table in front of each child and told them: if they could wait fifteen minutes without eating it, they would receive a second marshmallow as a reward. Some children grabbed the treat immediately. Others struggled heroically, covering their eyes, turning away, or singing songs to distract themselves. What Mischel found over the following decades was striking: the children who had waited scored higher on their SATs, had better health outcomes, and reported greater satisfaction in their relationships. The ability to delay gratification, it seemed, was one of the most powerful predictors of success in nearly every domain of life. But the story doesn't end there. Later researchers revisited the data and found that the results were far more nuanced than originally reported. Family background, income, and the reliability of the adults in a child's environment all played a significant role. A child who had learned not to trust that the second marshmallow would ever arrive had a rational reason to eat the first one immediately.</p>
+      <div class="passage-word-count">150 words</div>
+    </div>
+    <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:20px">Read the passage above at your normal reading pace. Click Start when ready.</p>
+    <button class="btn btn-primary" style="padding:14px 40px;font-size:1.05rem;font-weight:700" onclick="startTest()">▶ Start Reading</button>
+  </div>
+
+  <!-- STEP 2: Reading -->
+  <div id="step-reading">
+    <div class="passage-box" style="margin-bottom:24px">
+      <p id="passage-text-reading">In the 1960s, a Stanford researcher named Walter Mischel conducted an experiment with four-year-olds that would become one of the most cited studies in psychology. He placed a marshmallow on a table in front of each child and told them: if they could wait fifteen minutes without eating it, they would receive a second marshmallow as a reward. Some children grabbed the treat immediately. Others struggled heroically, covering their eyes, turning away, or singing songs to distract themselves. What Mischel found over the following decades was striking: the children who had waited scored higher on their SATs, had better health outcomes, and reported greater satisfaction in their relationships. The ability to delay gratification, it seemed, was one of the most powerful predictors of success in nearly every domain of life. But the story doesn't end there. Later researchers revisited the data and found that the results were far more nuanced than originally reported. Family background, income, and the reliability of the adults in a child's environment all played a significant role. A child who had learned not to trust that the second marshmallow would ever arrive had a rational reason to eat the first one immediately.</p>
+    </div>
+    <div style="margin-bottom:20px">
+      <div class="timer-display" id="timer">0.0s</div>
+      <p style="color:var(--text-muted);font-size:.9rem;margin-top:8px">Reading…</p>
+    </div>
+    <button class="btn btn-primary" style="padding:14px 40px;font-size:1.05rem;font-weight:700" onclick="finishTest()">✓ Done Reading</button>
+  </div>
+
+  <!-- STEP 3: Result -->
+  <div id="step-done">
+    <div class="result-box" id="result-box" style="display:block">
+      <div class="result-label">Your reading speed</div>
+      <div class="result-wpm" id="result-wpm">---</div>
+      <div class="result-label">WPM</div>
+
+      <div class="percentile-bar-wrap">
+        <div class="percentile-bar"><div class="percentile-fill" id="percentile-fill" style="width:0%"></div></div>
+        <div class="bar-label"><span>Slower</span><span>Faster</span></div>
+      </div>
+
+      <div class="result-percentile" id="result-percentile">—</div>
+      <div class="result-context" id="result-context">—</div>
+
+      <div class="result-projection">
+        <h3>📈 Where you could be in 30 days with WarpReader</h3>
+        <div class="projection-row">
+          <span class="label">Your speed today</span>
+          <span class="value" id="proj-today">— WPM</span>
+        </div>
+        <div class="projection-row">
+          <span class="label">Typical 30-day result</span>
+          <span class="value" id="proj-30d">— WPM</span>
+        </div>
+        <div class="projection-row">
+          <span class="label">Books you'd finish per month</span>
+          <span class="value" id="proj-books">—</span>
+        </div>
+      </div>
+
+      <div class="capture-box">
+        <h3>Get your personalized speed reading plan</h3>
+        <p>We'll send you the exact 28-day training plan that takes most readers from <span id="capture-from">—</span> to <span id="capture-to">—</span> WPM — based on your starting speed.</p>
+        <div id="capture-form-wrap">
+          <form class="capture-form" onsubmit="submitCapture(event)">
+            <input type="email" id="capture-email" placeholder="Your email address" required autocomplete="email">
+            <button type="submit" class="btn btn-primary">Get My Plan →</button>
+          </form>
+          <p style="font-size:.78rem;color:var(--text-muted);margin-top:8px">No spam. Unsubscribe any time.</p>
+        </div>
+        <div class="capture-success" id="capture-success">
+          ✅ Plan sent! Check your inbox. <a href="/app.html?utm_source=wpm_test&utm_medium=cta" style="color:var(--accent)">Start reading free now →</a>
+        </div>
+      </div>
+
+      <div class="cta-section">
+        <h3>Start training today — it's free</h3>
+        <p>61,000 books built in. 28-day course included. No app download needed.</p>
+        <a href="/app.html?utm_source=wpm_test&utm_medium=cta" class="btn btn-primary" style="padding:16px 48px;font-size:1.05rem;font-weight:700">Start Reading Free →</a>
+        <br><span class="retake-link" onclick="retakeTest()">↺ Retake the test</span>
+      </div>
+    </div>
+  </div>
+
+</section>
+</main>
+
+<!-- FOOTER -->
+<footer style="text-align:center;padding:32px 24px;color:var(--text-muted);font-size:.85rem;border-top:1px solid var(--border)">
+  <a href="/" style="color:var(--text-muted)">WarpReader</a> ·
+  <a href="/privacy.html" style="color:var(--text-muted)">Privacy</a> ·
+  <a href="/terms.html" style="color:var(--text-muted)">Terms</a>
+</footer>
+
+<script>
+  // ── STATE ──
+  let startTime = null;
+  let timerInterval = null;
+
+  // ── UTM SOURCE TRACKING ──
+  function getUTMSource() {
+    const p = new URLSearchParams(window.location.search);
+    return {
+      source: p.get('utm_source') || '',
+      medium: p.get('utm_medium') || '',
+      campaign: p.get('utm_campaign') || ''
+    };
+  }
+
+  // ── PERCENTILE ──
+  function getPercentile(wpm) {
+    if (wpm < 150) return { pct: 8, label: 'Bottom 10%', context: 'Below average — but this is exactly where most readers start before training.' };
+    if (wpm < 200) return { pct: 18, label: 'Below average', context: 'Most adults read between 200–250 WPM. You\'re close to the average.' };
+    if (wpm < 250) return { pct: 38, label: 'Average reader', context: 'You\'re right at the national average. Most WarpReader users double this in 30 days.' };
+    if (wpm < 300) return { pct: 55, label: 'Slightly above average', context: 'Better than half of all readers. With training, 400+ WPM is well within reach.' };
+    if (wpm < 350) return { pct: 67, label: 'Above average', context: 'You\'re already in the top third. Most readers in this range hit 450–500 WPM with training.' };
+    if (wpm < 450) return { pct: 80, label: 'Fast reader', context: 'Top 20%. You have a natural edge — training typically gets readers like you to 600+ WPM.' };
+    if (wpm < 600) return { pct: 92, label: 'Very fast reader', context: 'Top 10%. You\'re already in elite territory. WarpReader can push you to 700+ WPM.' };
+    return { pct: 97, label: 'Exceptional reader', context: 'Top 5% globally. You\'re already faster than most speed readers.' };
+  }
+
+  function getProjection(wpm) {
+    const gain = Math.round(wpm * 0.85); // ~85% gain is typical
+    const p30d = Math.min(wpm + gain, 700);
+    const booksPerMonth = Math.round((p30d * 60 * 30) / 70000 * 10) / 10; // avg book ~70k words
+    return { today: wpm, p30d, books: booksPerMonth };
+  }
+
+  // ── TEST FLOW ──
+  function startTest() {
+    document.getElementById('step-ready').style.display = 'none';
+    document.getElementById('step-reading').style.display = 'block';
+    startTime = Date.now();
+    timerInterval = setInterval(updateTimer, 100);
+    if (typeof wrTrack === 'function') wrTrack('wpm_test_start', getUTMSource());
+  }
+
+  function updateTimer() {
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    document.getElementById('timer').textContent = elapsed + 's';
+  }
+
+  function finishTest() {
+    clearInterval(timerInterval);
+    const elapsed = (Date.now() - startTime) / 1000; // seconds
+    const wpm = Math.round(150 / (elapsed / 60));
+
+    showResult(wpm, elapsed);
+    if (typeof wrTrack === 'function') wrTrack('wpm_test_complete', { wpm, elapsed: Math.round(elapsed), ...getUTMSource() });
+  }
+
+  function showResult(wpm, elapsed) {
+    document.getElementById('step-reading').style.display = 'none';
+    document.getElementById('step-done').style.display = 'block';
+
+    // WPM display
+    document.getElementById('result-wpm').textContent = wpm.toLocaleString();
+
+    // Percentile
+    const { pct, label, context } = getPercentile(wpm);
+    document.getElementById('result-percentile').textContent = `${label} — faster than ${pct}% of readers`;
+    document.getElementById('result-context').textContent = context;
+
+    // Animate percentile bar
+    setTimeout(() => {
+      document.getElementById('percentile-fill').style.width = pct + '%';
+    }, 100);
+
+    // Projection
+    const { today, p30d, books } = getProjection(wpm);
+    document.getElementById('proj-today').textContent = today + ' WPM';
+    document.getElementById('proj-30d').textContent = p30d + ' WPM';
+    document.getElementById('proj-books').textContent = books + ' books';
+
+    // Email capture copy
+    document.getElementById('capture-from').textContent = wpm;
+    document.getElementById('capture-to').textContent = Math.min(p30d, 500);
+
+    // Store result
+    try { localStorage.setItem('speedread_wpm_test', JSON.stringify({ wpm, pct, ts: new Date().toISOString() })); } catch(_) {}
+  }
+
+  function submitCapture(e) {
+    e.preventDefault();
+    const email = document.getElementById('capture-email').value.trim();
+    if (!email) return;
+
+    // Store locally
+    try { localStorage.setItem('speedread_email', email); } catch(_) {}
+
+    // Fire to analytics
+    if (typeof wrTrack === 'function') wrTrack('wpm_test_email_capture', { email, ...getUTMSource() });
+
+    // Send to Supabase saved_documents via existing pattern
+    const SUPABASE_URL = 'https://hmacjbgnvljhgvwdzkds.supabase.co';
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtYWNqYmdudmxqaGd2d2R6a2RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MDcwODAsImV4cCI6MjA4OTM4MzA4MH0.crS-Y4zEnCmUPM7DBbJvb5nVufgtbEXyW6WpOSBTl2k';
+    const wpmResult = JSON.parse(localStorage.getItem('speedread_wpm_test') || '{}');
+    fetch(`${SUPABASE_URL}/rest/v1/wpm_test_leads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ email, wpm: wpmResult.wpm, percentile: wpmResult.pct, utm_source: getUTMSource().source, utm_campaign: getUTMSource().campaign, created_at: new Date().toISOString() })
+    }).catch(() => {}); // fail silently if table doesn't exist yet
+
+    document.getElementById('capture-form-wrap').style.display = 'none';
+    document.getElementById('capture-success').style.display = 'block';
+  }
+
+  function retakeTest() {
+    clearInterval(timerInterval);
+    document.getElementById('step-done').style.display = 'none';
+    document.getElementById('step-reading').style.display = 'none';
+    document.getElementById('step-ready').style.display = 'block';
+    document.getElementById('timer').textContent = '0.0s';
+    document.getElementById('percentile-fill').style.width = '0%';
+    document.getElementById('capture-form-wrap').style.display = '';
+    document.getElementById('capture-success').style.display = 'none';
+    document.getElementById('capture-email').value = '';
+  }
+
+  // ── ANALYTICS ──
+  (function() {
+    var p = new URLSearchParams(window.location.search);
+    if (typeof wrTrack === 'function') wrTrack('page_view', { page: '/test', utm_source: p.get('utm_source'), utm_campaign: p.get('utm_campaign') });
+  })();
+</script>
+
+<!-- Analytics -->
+<script src="/analytics.js" defer></script>
+
+</body>
+</html>

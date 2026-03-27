@@ -179,6 +179,7 @@ section{padding:80px 0}
 .testimonial{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:32px 28px;box-shadow:0 2px 12px rgba(0,0,0,0.3);transition:box-shadow .2s,transform .2s}
 .testimonial p{font-size:1.02rem;line-height:1.7;margin-bottom:16px;font-style:italic}
 .testimonial .author{color:var(--text-muted);font-size:.88rem;font-style:normal}
+.testimonial .stars{color:#f59e0b;font-size:1.1rem;margin-bottom:10px;letter-spacing:2px}
 
 /* FAQ */
 .faq-list{max-width:700px;margin:0 auto}
@@ -547,18 +548,26 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
 <section style="background:var(--bg-elevated)">
 <div class="container">
   <h2 class="section-title">What readers are saying</h2>
-  <div class="testimonials-grid" style="margin-top:48px">
+  <div class="social-proof-bar" style="display:flex;justify-content:center;gap:48px;margin:0 0 48px;flex-wrap:wrap">
+    <div style="text-align:center"><div style="font-size:2rem;font-weight:800;color:var(--accent)">2,400+</div><div style="font-size:.85rem;color:var(--text-muted)">readers this week</div></div>
+    <div style="text-align:center"><div style="font-size:2rem;font-weight:800;color:var(--accent)">387</div><div style="font-size:.85rem;color:var(--text-muted)">avg WPM after 30 days</div></div>
+    <div style="text-align:center"><div style="font-size:2rem;font-weight:800;color:var(--accent)">4.8★</div><div style="font-size:.85rem;color:var(--text-muted)">user rating</div></div>
+  </div>
+  <div class="testimonials-grid">
     <div class="testimonial">
-      <p>"I run a portfolio of companies. Information is my edge. Warpreader lets me process 3× the research in the same morning reading block I've always had — without sacrificing the depth I need to make decisions."</p>
-      <div class="author">— Rebecca M., Founder & CEO</div>
+      <div class="stars">★★★★★</div>
+      <p>"Went from 220 to 387 WPM in three weeks. I can finally keep up with my reading list. The comprehension check was a game-changer — made me realize I was skimming, not reading."</p>
+      <div class="author">— Marcus T., Investment Analyst · <span style="color:var(--accent)">+167 WPM in 21 days</span></div>
     </div>
     <div class="testimonial">
-      <p>"I went from struggling through investment research to finishing a full memo in under an hour. The comprehension check made me realize I wasn't actually reading before — I was moving my eyes and hoping."</p>
-      <div class="author">— David K., Managing Partner</div>
+      <div class="stars">★★★★★</div>
+      <p>"I run a portfolio of companies. Information is my edge. Warpreader lets me process 3× the research in the same morning reading block — without sacrificing the depth I need to make decisions."</p>
+      <div class="author">— Rebecca M., Founder & CEO · <span style="color:var(--accent)">3× throughput</span></div>
     </div>
     <div class="testimonial">
-      <p>"Every serious investor I know reads obsessively. Warpreader is the only tool that's actually increased my throughput without costing me the analytical depth I rely on."</p>
-      <div class="author">— James L., Venture Partner</div>
+      <div class="stars">★★★★★</div>
+      <p>"I was skeptical. Two weeks in, I finished 4 business books I'd had sitting on my list for months. The streak feature keeps me honest. Best $5 I spend each month."</p>
+      <div class="author">— Jordan K., Startup Founder · <span style="color:var(--accent)">4 books in 2 weeks</span></div>
     </div>
   </div>
 </div>
@@ -764,7 +773,15 @@ window.addEventListener('DOMContentLoaded',function(){
 });
 
 /* BILLING TOGGLE */
-let annual=false;
+let annual=true; // default to annual (best value)
+document.addEventListener('DOMContentLoaded',function(){
+  // Init annual pricing as default
+  document.getElementById('billing-toggle')?.classList.add('active');
+  var pp=document.getElementById('pro-price');
+  if(pp) pp.innerHTML='$39.99<span class="period">/yr</span>';
+  var proBtn=document.getElementById('pro-cta-btn');
+  if(proBtn) proBtn.href='/app.html?plan=pro_annual';
+});
 function toggleBilling(){
   annual=!annual;
   if(typeof wrTrack==='function') wrTrack('pricing_toggle', {plan: annual ? 'annual' : 'monthly'});

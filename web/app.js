@@ -648,6 +648,14 @@ function processText(text) {
   showIdleDisplay('Ready to read');
   updateProgress();
 
+  // Soft email capture — show 3s after file load, only once per session
+  if (!isPro() && !hasSubmittedLead() && !sessionStorage.getItem('lead_prompt_shown')) {
+    sessionStorage.setItem('lead_prompt_shown', '1');
+    setTimeout(() => {
+      if (!hasSubmittedLead()) showSoftLeadPrompt();
+    }, 3000);
+  }
+
   const saved = loadProgress();
   if (saved && saved.wordIdx > 0) {
     offerResume(saved);
@@ -804,6 +812,43 @@ async function handleAuth() {
 
 // ── UPGRADE MODAL ──
 // ── LEAD CAPTURE (app) ──
+// ── SOFT LEAD PROMPT (fires 3s after first file upload) ──
+function showSoftLeadPrompt() {
+  // Show as a toast-style banner, not a blocking modal
+  const existing = document.getElementById('soft-lead-prompt');
+  if (existing) return;
+  const div = document.createElement('div');
+  div.id = 'soft-lead-prompt';
+  div.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:16px 20px;box-shadow:0 4px 24px rgba(0,0,0,.4);z-index:2000;display:flex;align-items:center;gap:14px;max-width:460px;width:calc(100% - 40px);animation:slideUp .4s ease';
+  div.innerHTML = `
+    <div style="flex:1">
+      <div style="font-weight:700;font-size:.95rem;margin-bottom:3px">💾 Save your reading progress</div>
+      <div style="font-size:.82rem;color:var(--text-muted)">Enter email to sync your position across devices</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input type="email" id="soft-lead-email" placeholder="your@email.com" autocomplete="email"
+          style="flex:1;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:.85rem">
+        <button onclick="submitSoftLead()" style="background:var(--accent);color:#000;border:none;border-radius:8px;padding:7px 14px;font-weight:700;cursor:pointer;font-size:.85rem">Save</button>
+      </div>
+    </div>
+    <button onclick="document.getElementById('soft-lead-prompt').remove()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:4px;flex-shrink:0" title="Dismiss">✕</button>
+  `;
+  document.body.appendChild(div);
+  if (typeof wrTrack === 'function') wrTrack('soft_lead_shown', {});
+}
+
+function submitSoftLead() {
+  const email = document.getElementById('soft-lead-email')?.value?.trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    document.getElementById('soft-lead-email')?.focus();
+    return;
+  }
+  activateEmailTrial('Reader', email);
+  document.getElementById('soft-lead-prompt')?.remove();
+  updateTrialBanner();
+  showToast(`✅ Saved! Your progress will sync across devices.`, 4000);
+  if (typeof wrTrack === 'function') wrTrack('soft_lead_submitted', { source: 'post_upload' });
+}
+
 function showAppLeadModal() {
   document.getElementById('app-lead-modal')?.classList.remove('hidden');
 }
@@ -936,8 +981,18 @@ function submitFeedback() {
 
 function showUpgradeModal(msg) {
   if (typeof wrTrack === 'function') wrTrack('upgrade_modal_shown', { reason: msg ? msg.slice(0, 80) : 'manual' });
+  const pEl = document.getElementById('upgrade-modal-msg');
+  const h2El = document.getElementById('upgrade-modal-title');
   if (msg) {
-    document.querySelector('.upgrade-modal-content p').textContent = msg;
+    if (pEl) pEl.textContent = msg;
+    if (h2El) h2El.textContent = 'Keep reading — upgrade to Pro';
+  } else {
+    // Default: contextual copy based on reading progress
+    const pagesRead = Math.ceil((currentIdx || 0) / 250);
+    if (h2El && pagesRead > 2) {
+      h2El.textContent = `You've read ${pagesRead} pages. Don't lose your place.`;
+    }
+    if (pEl) pEl.innerHTML = 'Upgrade to Pro to save every book, track your WPM, and read without limits.<br><small style="color:var(--accent)">📚 Unlimited library · 📈 WPM tracking · 🔁 Never lose your place</small>';
   }
   document.getElementById('upgrade-modal').classList.remove('hidden');
 }

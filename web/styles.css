@@ -356,3 +356,5 @@ footer .container {
   footer .container { flex-direction: column; text-align: center; }
   .footer-links { justify-content: center; }
 }
+
+@keyframes slideUp { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
