@@ -1185,7 +1185,7 @@ async function renderMobileBanners() {
         docName: d.title,
         wordIdx: d.last_position,
         totalWords: d.word_count,
-        wpm: d.last_wpm,
+        wpm: d.wpm_when_last_read,
         timestamp: new Date(d.updated_at).getTime(),
         source: 'cloud',
       };
@@ -1329,9 +1329,11 @@ async function _saveDocToCloud(textContent) {
         source: 'upload',
         word_count: words.length,
         last_position: currentIdx,
-        last_wpm: wpm,
+        wpm_when_last_read: wpm,
+        last_read_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id, title' });
+      console.log(`[Warpreader] Saved "${title}" to cloud (${(textSize/1024).toFixed(0)}KB)`);
     } else {
       // Large file — store metadata + chunks
       const { data: doc } = await supabaseClient.from('documents').upsert({
@@ -1341,7 +1343,8 @@ async function _saveDocToCloud(textContent) {
         source: 'upload_chunked',
         word_count: words.length,
         last_position: currentIdx,
-        last_wpm: wpm,
+        wpm_when_last_read: wpm,
+        last_read_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id, title' }).select('id').single();
 
@@ -1400,7 +1403,8 @@ async function _flushSyncQueue() {
     try {
       const { error } = await supabaseClient.from('documents').update({
         last_position: entry.position,
-        last_wpm: entry.wpm,
+        wpm_when_last_read: entry.wpm,
+        last_read_at: new Date(entry.ts).toISOString(),
         updated_at: new Date(entry.ts).toISOString(),
       }).eq('user_id', currentUser.id).eq('title', entry.title);
       if (error) remaining.push(entry); // keep if failed
@@ -1442,7 +1446,8 @@ saveProgress = function() {
   // Online — try cloud sync, queue if it fails
   supabaseClient.from('documents').update({
     last_position: currentIdx,
-    last_wpm: wpm,
+    wpm_when_last_read: wpm,
+    last_read_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }).eq('user_id', currentUser.id).eq('title', title)
     .then(({ error }) => { if (error) _queueSync(title, currentIdx, wpm); })
@@ -1455,11 +1460,13 @@ async function _loadDocFromCloud(title) {
   try {
     const { data, error } = await supabaseClient
       .from('documents')
-      .select('id, content, source, last_position, last_wpm, word_count, title')
+      .select('id, content, source, last_position, wpm_when_last_read, word_count, title')
       .eq('user_id', currentUser.id)
       .eq('title', title)
       .single();
     if (error || !data) return null;
+    // Normalize column name for consumers
+    data.last_wpm = data.wpm_when_last_read;
 
     // Inline content (small files)
     if (data.content) return data;
@@ -1491,7 +1498,7 @@ async function _getCloudDocs() {
   try {
     const { data, error } = await supabaseClient
       .from('documents')
-      .select('title, last_position, last_wpm, word_count, updated_at')
+      .select('title, last_position, wpm_when_last_read, word_count, updated_at')
       .eq('user_id', currentUser.id)
       .order('updated_at', { ascending: false })
       .limit(5);
