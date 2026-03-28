@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { tokenizeText, getDelay, splitWordAtORP, WordParts } from '../lib/rsvp';
 
 export type RSVPState = 'idle' | 'playing' | 'paused' | 'complete';
@@ -39,6 +40,16 @@ export function useRSVP({
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [wpm, setWpm] = useState(initialWpm);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // Restore user's preferred WPM from last session
+  useEffect(() => {
+    AsyncStorage.getItem('warpreader_preferred_wpm').then((saved) => {
+      if (saved) {
+        const v = parseInt(saved, 10);
+        if (v >= 50 && v <= 1500) setWpm(v);
+      }
+    }).catch(() => {});
+  }, []);
 
   const currentWord = words.current[currentIndex] || '';
   const currentWordParts = splitWordAtORP(currentWord);
@@ -133,11 +144,13 @@ export function useRSVP({
     [state, totalWords, wpm, clearTimers, advance]
   );
 
-  // Change WPM
+  // Change WPM — also persists as user's preferred speed
   const changeWpm = useCallback(
     (newWpm: number) => {
       const clamped = Math.max(50, Math.min(1500, newWpm));
       setWpm(clamped);
+      // Persist preferred WPM for next session
+      try { AsyncStorage.setItem('warpreader_preferred_wpm', String(clamped)); } catch {}
       if (state === 'playing') {
         clearTimers();
         // Resume with new WPM

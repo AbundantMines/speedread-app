@@ -19,6 +19,10 @@ function delay(w, wpm) {
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let words = [], idx = 0, wpm = 300, playing = false, timer = null;
+// Restore preferred WPM
+chrome.storage.sync.get(['defaultWPM'], (r) => {
+  if (r.defaultWPM) { wpm = r.defaultWPM; setWPM(r.defaultWPM); }
+});
 
 // ── DOM ───────────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);

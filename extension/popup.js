@@ -20,6 +20,8 @@ function delay(w, wpm) {
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let words = [], idx = 0, wpm = 300, playing = false, timer = null;
+// Restore preferred WPM immediately
+chrome.storage.sync.get(['defaultWPM'], (r) => { if (r.defaultWPM) { wpm = r.defaultWPM; } });
 let currentUser = null, currentPlan = 'free';
 let authPanelOpen = false, authMode = 'signin';
 let sessionStartWPM = null; // track WPM at session start for sync

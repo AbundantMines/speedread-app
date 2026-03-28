@@ -17,7 +17,7 @@ function addToBuffer(word) {
 }
 let words = [];
 let currentIdx = 0;
-let wpm = 300;
+let wpm = parseInt(localStorage.getItem('speedread_preferred_wpm'), 10) || 300;
 let contextVisible = false;
 let timerId = null;
 let pageBoundaries = [];
@@ -486,6 +486,8 @@ function setWPM(val) {
   wpm = Math.max(100, Math.min(1500, val));
   document.getElementById('wpm-display').textContent = wpm;
   document.getElementById('wpm-slider').value = wpm;
+  // Persist as user's preferred speed — restored on next session/document
+  try { localStorage.setItem('speedread_preferred_wpm', wpm); } catch(_) {}
 }
 function onSlider(val) { setWPM(parseInt(val, 10)); }
 
@@ -2416,6 +2418,10 @@ window.addEventListener('DOMContentLoaded', () => {
   // Restore theme
   const theme = localStorage.getItem('speedread_theme');
   if (theme === 'light') { document.documentElement.setAttribute('data-theme', 'light'); document.getElementById('theme-btn').textContent = '☀️'; }
+
+  // Restore preferred WPM from last session
+  const savedWPM = parseInt(localStorage.getItem('speedread_preferred_wpm'), 10);
+  if (savedWPM >= 100 && savedWPM <= 1500) setWPM(savedWPM);
 
   updateAccountUI();
   updateTrialBanner();
