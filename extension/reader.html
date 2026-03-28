@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warpreader — Full Reader</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+
+<div class="reader-topbar">
+  <div class="reader-logo">⚡ Warp<span>reader</span></div>
+  <div class="reader-topbar-right">
+    <span class="reader-wpm-display" id="wpm-display">300 WPM</span>
+    <button class="close-reader" onclick="window.close()">✕ Close</button>
+  </div>
+</div>
+
+<div class="reader-layout">
+  <div class="rsvp-container">
+    <div class="rsvp-window">
+      <div class="word-row" id="word-row" style="display:none">
+        <span class="word-before" id="word-before"></span>
+        <span class="word-orp" id="word-orp"></span>
+        <span class="word-after" id="word-after"></span>
+      </div>
+      <div class="idle-text" id="idle-text">Loading…</div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="progress-info">
+        <span id="progress-pos">0 / 0 words</span>
+        <span id="progress-pct">0%</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-sm" id="btn-back50" title="Back 50 (Shift+←)">⏮</button>
+      <button class="btn btn-sm" id="btn-back10" title="Back 10 (←)">◄</button>
+      <button class="btn btn-play" id="play-btn">▶ Play</button>
+      <button class="btn btn-sm" id="btn-fwd10" title="Forward 10 (→)">►</button>
+      <button class="btn btn-sm" id="btn-fwd50" title="Forward 50 (Shift+→)">⏭</button>
+    </div>
+
+    <div class="wpm-row">
+      <label>WPM</label>
+      <input type="range" id="wpm-slider" min="100" max="1500" step="25" value="300">
+      <span class="wpm-val" id="wpm-val">300</span>
+    </div>
+
+    <div class="kbd-hint">
+      <span><kbd>Space</kbd> play/pause</span>
+      <span><kbd>←/→</kbd> jump 10</span>
+      <span><kbd>Shift+←/→</kbd> jump 50</span>
+      <span><kbd>↑/↓</kbd> speed ±25</span>
+    </div>
+  </div>
+</div>
+
+<script src="reader.js"></script>
+</body>
+</html>

@@ -2,50 +2,54 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{width:400px;height:500px;background:#0a0a0a;color:#f0e8d8;font-family:system-ui,-apple-system,sans-serif;font-size:14px;display:flex;flex-direction:column;overflow:hidden}
-.header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #222}
-.logo{font-size:16px;font-weight:800}.logo span{color:#c9a84c}
-.close-btn{background:none;border:none;color:#8a8070;cursor:pointer;font-size:16px}
-
-.rsvp-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px}
-.rsvp-window{width:100%;height:70px;display:flex;align-items:center;justify-content:center;background:#111;border-radius:8px;border:1px solid #222;position:relative;margin-bottom:12px}
-.rsvp-window::after{content:'';position:absolute;left:50%;top:0;width:2px;height:6px;background:#e63946;transform:translateX(-50%)}
-.word-row{display:flex;align-items:baseline;font-family:Georgia,serif;font-size:36px;white-space:nowrap}
-.word-before{color:#666;min-width:140px;text-align:right;display:inline-block}
-.word-orp{color:#e63946;font-weight:700;width:1ch;text-align:center;display:inline-block}
-.word-after{color:#f0e8d8;min-width:140px;text-align:left;display:inline-block}
-.idle-text{color:#8a8070;font-size:14px}
-
-.progress{width:100%;height:3px;background:#1a1a1a;border-radius:2px;margin-bottom:8px}
-.progress-fill{height:100%;background:#c9a84c;border-radius:2px;width:0%;transition:width 0.2s}
-.progress-info{display:flex;justify-content:space-between;font-size:11px;color:#8a8070;margin-bottom:16px;width:100%}
-
-.controls{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px}
-.btn{padding:8px 14px;border-radius:6px;border:1px solid #222;background:#1e1e1e;color:#f0e8d8;cursor:pointer;font-size:13px;transition:background .15s}
-.btn:hover{background:#2a2a2a}
-.btn-play{background:#c9a84c;border-color:#c9a84c;color:#000;font-weight:700;min-width:80px}
-.btn-play:hover{background:#d4ad55}
-.btn-sm{padding:6px 10px;font-size:12px}
-
-.wpm-row{display:flex;align-items:center;gap:8px;width:100%;margin-bottom:8px}
-.wpm-row label{font-size:11px;color:#8a8070;text-transform:uppercase;letter-spacing:.5px;min-width:32px}
-.wpm-row input[type=range]{flex:1;-webkit-appearance:none;height:3px;background:#1a1a1a;border-radius:2px;outline:none;border:none}
-.wpm-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#c9a84c;cursor:pointer;border:2px solid #000}
-.wpm-val{font-size:14px;font-weight:700;color:#c9a84c;min-width:40px;text-align:right}
-
-.source-section{padding:8px 16px;border-top:1px solid #222}
-.source-btns{display:flex;gap:6px;flex-wrap:wrap}
-.open-app{display:block;text-align:center;padding:10px;color:#c9a84c;font-size:12px;border-top:1px solid #222}
-.open-app:hover{text-decoration:underline}
-</style>
+<title>Warpreader</title>
+<link rel="stylesheet" href="popup.css">
 </head>
 <body>
+
+<!-- Header -->
 <div class="header">
-  <div class="logo">⚡ <span>Speed</span>Read</div>
+  <div class="logo">⚡ Warp<span>reader</span></div>
+  <div class="header-right">
+    <div class="account-btn" id="account-btn" title="Account">
+      <div class="avatar anon" id="avatar-initial">?</div>
+      <span class="plan-badge" id="plan-badge">FREE</span>
+    </div>
+  </div>
 </div>
 
+<!-- Auth Panel (toggle) -->
+<div class="auth-panel" id="auth-panel">
+  <!-- Not signed in -->
+  <div id="auth-form-wrap">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-signin" onclick="switchTab('signin')">Sign In</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+    </div>
+    <div class="auth-field"><input type="email" id="auth-email" placeholder="Email" autocomplete="email"></div>
+    <div class="auth-field"><input type="password" id="auth-password" placeholder="Password" autocomplete="current-password"></div>
+    <button class="auth-submit" id="auth-submit-btn" onclick="doAuth()">Sign In</button>
+    <div class="auth-msg" id="auth-msg"></div>
+  </div>
+  <!-- Signed in -->
+  <div id="signed-in-wrap" style="display:none">
+    <div class="signed-in-panel">
+      <div class="user-info">
+        <span class="user-email" id="user-email-display">user@example.com</span>
+        <span>Signed in</span>
+      </div>
+      <button class="signout-btn" onclick="doSignOut()">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- Limit banner -->
+<div class="limit-banner" id="limit-banner">
+  <p>🔒 Daily free limit reached (3 articles). Go Pro for unlimited.</p>
+  <button class="upgrade-btn" onclick="openUpgrade()">Upgrade to Pro</button>
+</div>
+
+<!-- RSVP Area -->
 <div class="rsvp-area">
   <div class="rsvp-window">
     <div class="word-row" id="word-row" style="display:none">
@@ -53,39 +57,56 @@ body{width:400px;height:500px;background:#0a0a0a;color:#f0e8d8;font-family:syste
       <span class="word-orp" id="word-orp"></span>
       <span class="word-after" id="word-after"></span>
     </div>
-    <div class="idle-text" id="idle-text">Click "Extract Page" to start</div>
+    <div class="idle-text" id="idle-text">Extract a page to begin reading</div>
   </div>
 
-  <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
-  <div class="progress-info">
-    <span id="progress-pos">Word 0 / 0</span>
-    <span id="progress-pct">0%</span>
+  <div class="progress-wrap">
+    <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="progress-info">
+      <span id="progress-pos">0 / 0 words</span>
+      <span id="progress-pct">0%</span>
+    </div>
   </div>
 
   <div class="controls">
-    <button class="btn btn-sm" onclick="jump(-50)">◄◄</button>
-    <button class="btn btn-sm" onclick="jump(-10)">◄</button>
-    <button class="btn btn-play" id="play-btn" onclick="togglePlay()">▶ Play</button>
-    <button class="btn btn-sm" onclick="jump(10)">►</button>
-    <button class="btn btn-sm" onclick="jump(50)">►►</button>
+    <button class="btn btn-sm" id="btn-back50" title="Back 50">⏮</button>
+    <button class="btn btn-sm" id="btn-back10" title="Back 10">◄</button>
+    <button class="btn btn-play" id="play-btn">▶ Play</button>
+    <button class="btn btn-sm" id="btn-fwd10" title="Forward 10">►</button>
+    <button class="btn btn-sm" id="btn-fwd50" title="Forward 50">⏭</button>
   </div>
 
   <div class="wpm-row">
     <label>WPM</label>
-    <input type="range" id="wpm-slider" min="100" max="1500" step="25" value="300" oninput="setWPM(+this.value)">
+    <input type="range" id="wpm-slider" min="100" max="1500" step="25" value="300">
     <span class="wpm-val" id="wpm-val">300</span>
   </div>
 </div>
 
-<div class="source-section">
-  <div class="source-btns">
-    <button class="btn btn-sm" onclick="extractPage()">📄 Extract Page</button>
-    <button class="btn btn-sm" onclick="useSelection()">✂️ Selected Text</button>
+<!-- Bottom: source buttons + sparkline -->
+<div class="bottom-section">
+  <div class="source-row">
+    <button class="btn btn-sm" id="btn-extract">📄 Extract Page</button>
+    <button class="btn btn-sm" id="btn-selection">✂️ Selection</button>
+    <button class="btn btn-sm" id="btn-fullreader">⬛ Full Reader</button>
+  </div>
+
+  <div class="sparkline-wrap" id="sparkline-wrap" style="display:none">
+    <span class="sparkline-label">WPM History</span>
+    <svg id="sparkline-svg" viewBox="0 0 380 36" preserveAspectRatio="none"></svg>
   </div>
 </div>
 
-<a class="open-app" href="https://warpreader.com/app.html" target="_blank">Open in Warpreader App →</a>
+<div class="kbd-hint">
+  <span><kbd>Space</kbd> play/pause</span>
+  <span><kbd>←/→</kbd> jump</span>
+  <span><kbd>↑/↓</kbd> speed</span>
+</div>
 
+<button class="open-app" id="btn-open-app">Open in Warpreader app →</button>
+
+<script src="lib/supabase.min.js"></script>
+<script src="lib/auth.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>

@@ -1,9 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Warpreader — Speed Reading Extension",
-  "version": "1.0.0",
-  "description": "Speed read any webpage. Select text or click the icon to read at 300+ WPM using RSVP technology.",
+  "version": "2.0.0",
+  "description": "Speed read any webpage with RSVP. Syncs with your Warpreader account for progress tracking and unlimited reading.",
   "permissions": ["activeTab", "contextMenus", "storage"],
+  "host_permissions": [
+    "https://warpreader.com/*",
+    "https://hmacjbgnvljhgvwdzkds.supabase.co/*"
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -25,5 +29,9 @@
     "js": ["content.js"],
     "run_at": "document_idle"
   }],
-  "options_page": "options.html"
+  "options_page": "options.html",
+  "web_accessible_resources": [{
+    "resources": ["reader.html", "reader.js", "reader.css"],
+    "matches": ["<all_urls>"]
+  }]
 }

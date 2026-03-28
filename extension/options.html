@@ -4,46 +4,262 @@
 <meta charset="UTF-8">
 <title>Warpreader Settings</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0a;color:#f0e8d8;font-family:system-ui,sans-serif;padding:40px;max-width:480px;margin:0 auto}
-h1{font-size:24px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
-h1 span{color:#c9a84c}
-.subtitle{color:#8a8070;margin-bottom:32px}
-.field{margin-bottom:24px}
-.field label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#8a8070;margin-bottom:8px}
-input[type=number],select{background:#111;border:1px solid #222;border-radius:8px;color:#f0e8d8;padding:10px 14px;font-size:16px;width:100%;outline:none}
-input:focus,select:focus{border-color:#c9a84c}
-.btn{padding:12px 24px;border-radius:8px;border:1px solid #c9a84c;background:#c9a84c;color:#000;font-weight:700;cursor:pointer;font-size:14px}
-.btn:hover{background:#d4ad55}
-.saved{color:#22c55e;font-size:13px;margin-left:12px;opacity:0;transition:opacity .3s}
-.saved.show{opacity:1}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0a0a0a; color: #e8e0d0;
+  font-family: system-ui, -apple-system, sans-serif;
+  padding: 40px; max-width: 520px; margin: 0 auto;
+}
+h1 { font-size: 24px; margin-bottom: 4px; }
+h1 span { color: #c9a84c; }
+.subtitle { color: #6a6058; margin-bottom: 32px; font-size: 14px; }
+
+/* Sections */
+.section {
+  background: #0d0d0d; border: 1px solid #1e1e1e;
+  border-radius: 12px; padding: 20px 24px; margin-bottom: 24px;
+}
+.section h2 { font-size: 14px; color: #c9a84c; margin-bottom: 16px; text-transform: uppercase; letter-spacing: .5px; }
+
+.field { margin-bottom: 20px; }
+.field:last-child { margin-bottom: 0; }
+.field label {
+  display: block; font-size: 12px; text-transform: uppercase;
+  letter-spacing: .5px; color: #6a6058; margin-bottom: 8px;
+}
+input[type=number], select, input[type=email], input[type=password] {
+  background: #111; border: 1px solid #222; border-radius: 8px;
+  color: #e8e0d0; padding: 10px 14px; font-size: 15px;
+  width: 100%; outline: none; font-family: inherit;
+  transition: border-color .15s;
+}
+input:focus, select:focus { border-color: #c9a84c; }
+
+.btn-row { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+.btn {
+  padding: 11px 22px; border-radius: 8px;
+  border: 1px solid #c9a84c; background: #c9a84c;
+  color: #000; font-weight: 700; cursor: pointer;
+  font-size: 14px; transition: background .15s;
+}
+.btn:hover { background: #d4ad55; }
+.btn-ghost {
+  background: transparent; border-color: #333; color: #8a8070;
+}
+.btn-ghost:hover { border-color: #555; color: #e8e0d0; }
+.btn-danger {
+  background: transparent; border-color: #e63946; color: #e63946;
+}
+.btn-danger:hover { background: #e6394622; }
+
+.saved { color: #22c55e; font-size: 13px; opacity: 0; transition: opacity .3s; }
+.saved.show { opacity: 1; }
+
+/* Auth */
+.auth-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+.auth-tab {
+  flex: 1; padding: 8px; border-radius: 8px;
+  border: 1px solid #1e1e1e; background: transparent;
+  color: #6a6058; cursor: pointer; font-size: 13px;
+  transition: all .15s;
+}
+.auth-tab.active { background: #1a1a1a; color: #e8e0d0; border-color: #333; }
+
+.auth-msg { font-size: 13px; margin-top: 10px; }
+.auth-msg.error { color: #e63946; }
+.auth-msg.success { color: #22c55e; }
+
+/* Account panel */
+.account-card {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.account-info { display: flex; align-items: center; gap: 12px; }
+.avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: #c9a84c; color: #000;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 16px;
+}
+.avatar.anon { background: #1a1a1a; color: #333; font-size: 20px; }
+.account-name { font-size: 15px; font-weight: 600; }
+.account-email { font-size: 12px; color: #6a6058; }
+.plan-badge {
+  font-size: 11px; font-weight: 700; padding: 3px 8px;
+  border-radius: 5px; border: 1px solid #2a2a2a;
+  background: #1a1a1a; color: #6a6058;
+}
+.plan-badge.pro { background: #2a1e00; color: #c9a84c; border-color: #c9a84c44; }
+
+/* Upgrade CTA */
+.upgrade-cta {
+  background: #1a1200; border: 1px solid #c9a84c44;
+  border-radius: 10px; padding: 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-top: 16px;
+}
+.upgrade-cta p { font-size: 13px; color: #c9a84c; }
+.upgrade-cta span { font-size: 12px; color: #6a6058; display: block; margin-top: 2px; }
 </style>
 </head>
 <body>
-<h1>⚡ <span>Speed</span>Read Settings</h1>
-<p class="subtitle">Configure your default reading preferences</p>
+<h1>⚡ Warp<span>reader</span> Settings</h1>
+<p class="subtitle">Configure your reading preferences and account</p>
 
-<div class="field">
-  <label>Default WPM</label>
-  <input type="number" id="default-wpm" min="100" max="1500" step="25" value="300">
+<!-- Account Section -->
+<div class="section">
+  <h2>Account</h2>
+
+  <!-- Signed out: auth form -->
+  <div id="auth-form-section">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-signin" onclick="switchTab('signin')">Sign In</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Create Account</button>
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="auth-submit-btn" onclick="doAuth()">Sign In</button>
+    </div>
+    <div class="auth-msg" id="auth-msg"></div>
+  </div>
+
+  <!-- Signed in: account card -->
+  <div id="signed-in-section" style="display:none">
+    <div class="account-card">
+      <div class="account-info">
+        <div class="avatar" id="opt-avatar">U</div>
+        <div>
+          <div class="account-name" id="opt-name">Account</div>
+          <div class="account-email" id="opt-email">user@example.com</div>
+        </div>
+      </div>
+      <span class="plan-badge" id="opt-plan-badge">FREE</span>
+    </div>
+
+    <div class="upgrade-cta" id="upgrade-cta" style="display:none">
+      <div>
+        <p>Go Pro — Unlimited reading</p>
+        <span>Free plan: 3 articles/day · Pro: unlimited + sync</span>
+      </div>
+      <button class="btn" onclick="openUpgrade()">Upgrade →</button>
+    </div>
+
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-danger" onclick="doSignOut()">Sign Out</button>
+    </div>
+  </div>
 </div>
 
-<div class="field">
-  <label>Theme</label>
-  <select id="theme-select">
-    <option value="dark">Dark</option>
-    <option value="light">Light</option>
-  </select>
+<!-- Reading Preferences -->
+<div class="section">
+  <h2>Reading Preferences</h2>
+  <div class="field">
+    <label>Default WPM</label>
+    <input type="number" id="default-wpm" min="100" max="1500" step="25" value="300">
+  </div>
+  <div class="field">
+    <label>Theme</label>
+    <select id="theme-select">
+      <option value="dark">Dark</option>
+      <option value="light">Light (coming soon)</option>
+    </select>
+  </div>
+  <div class="btn-row">
+    <button class="btn" onclick="saveSettings()">Save Settings</button>
+    <span class="saved" id="saved-msg">✓ Saved!</span>
+  </div>
 </div>
 
-<button class="btn" onclick="saveSettings()">Save Settings</button>
-<span class="saved" id="saved-msg">✓ Saved!</span>
-
+<script src="lib/supabase.min.js"></script>
+<script src="lib/auth.js"></script>
 <script>
-chrome.storage.sync.get(['defaultWPM', 'theme'], (r) => {
-  if (r.defaultWPM) document.getElementById('default-wpm').value = r.defaultWPM;
-  if (r.theme) document.getElementById('theme-select').value = r.theme;
-});
+let authMode = 'signin';
+let currentUser = null;
+
+function switchTab(mode) {
+  authMode = mode;
+  document.getElementById('tab-signin').classList.toggle('active', mode === 'signin');
+  document.getElementById('tab-signup').classList.toggle('active', mode === 'signup');
+  document.getElementById('auth-submit-btn').textContent = mode === 'signin' ? 'Sign In' : 'Create Account';
+  document.getElementById('auth-msg').textContent = '';
+  document.getElementById('auth-msg').className = 'auth-msg';
+}
+
+async function doAuth() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const msgEl = document.getElementById('auth-msg');
+
+  if (!email || !password) {
+    msgEl.textContent = 'Please enter email and password.';
+    msgEl.className = 'auth-msg error';
+    return;
+  }
+
+  const btn = document.getElementById('auth-submit-btn');
+  btn.textContent = 'Please wait…';
+  btn.disabled = true;
+
+  let result;
+  if (authMode === 'signin') {
+    result = await WarpAuth.signIn(email, password);
+  } else {
+    result = await WarpAuth.signUp(email, password);
+  }
+
+  btn.disabled = false;
+  switchTab(authMode);
+
+  if (result.success) {
+    if (result.needsConfirmation) {
+      msgEl.textContent = '✓ Check your email to confirm your account.';
+      msgEl.className = 'auth-msg success';
+    } else {
+      await loadUserUI(result.user);
+    }
+  } else {
+    msgEl.textContent = result.error || 'Authentication failed.';
+    msgEl.className = 'auth-msg error';
+  }
+}
+
+async function loadUserUI(user) {
+  currentUser = user;
+  const plan = await WarpAuth.getUserPlan(user.id).catch(() => 'free');
+  const initial = (user.email || 'U')[0].toUpperCase();
+
+  document.getElementById('opt-avatar').textContent = initial;
+  document.getElementById('opt-avatar').classList.remove('anon');
+  document.getElementById('opt-name').textContent = user.email || 'Account';
+  document.getElementById('opt-email').textContent = user.email || '';
+
+  const badge = document.getElementById('opt-plan-badge');
+  badge.textContent = plan === 'pro' ? 'PRO' : 'FREE';
+  badge.classList.toggle('pro', plan === 'pro');
+
+  document.getElementById('upgrade-cta').style.display = plan === 'pro' ? 'none' : 'flex';
+  document.getElementById('auth-form-section').style.display = 'none';
+  document.getElementById('signed-in-section').style.display = 'block';
+}
+
+async function doSignOut() {
+  await WarpAuth.signOut();
+  currentUser = null;
+  document.getElementById('auth-form-section').style.display = 'block';
+  document.getElementById('signed-in-section').style.display = 'none';
+  document.getElementById('opt-avatar').textContent = '?';
+  document.getElementById('opt-avatar').classList.add('anon');
+}
+
+function openUpgrade() {
+  chrome.tabs.create({ url: 'https://warpreader.com/app.html?plan=pro_annual' });
+}
 
 function saveSettings() {
   const wpm = parseInt(document.getElementById('default-wpm').value) || 300;
@@ -54,6 +270,21 @@ function saveSettings() {
     setTimeout(() => msg.classList.remove('show'), 2000);
   });
 }
+
+// Init
+async function init() {
+  chrome.storage.sync.get(['defaultWPM', 'theme'], (r) => {
+    if (r.defaultWPM) document.getElementById('default-wpm').value = r.defaultWPM;
+    if (r.theme) document.getElementById('theme-select').value = r.theme;
+  });
+
+  try {
+    const user = await WarpAuth.getUser();
+    if (user) await loadUserUI(user);
+  } catch (e) { /* offline */ }
+}
+
+init();
 </script>
 </body>
 </html>

@@ -1,0 +1,165 @@
+/* Warpreader — Full-Tab Reader Styles */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: #0a0a0a;
+  color: #e8e0d0;
+  font-family: system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+.reader-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+/* ── Top bar ─────────────────────────────── */
+.reader-topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  background: #0a0a0a;
+  border-bottom: 1px solid #1a1a1a;
+  z-index: 10;
+}
+.reader-logo { font-size: 18px; font-weight: 800; }
+.reader-logo span { color: #c9a84c; }
+
+.reader-topbar-right {
+  display: flex; align-items: center; gap: 12px;
+}
+.reader-wpm-display {
+  font-size: 14px; font-weight: 700; color: #c9a84c;
+}
+.close-reader {
+  background: none; border: 1px solid #222;
+  border-radius: 6px; color: #8a8070; padding: 6px 12px;
+  cursor: pointer; font-size: 13px;
+}
+.close-reader:hover { border-color: #555; color: #e8e0d0; }
+
+/* ── RSVP Window ─────────────────────────── */
+.rsvp-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 900px;
+  margin-top: 60px;
+}
+
+.rsvp-window {
+  width: 100%;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0d0d0d;
+  border: 1px solid #1a1a1a;
+  border-radius: 16px;
+  position: relative;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.rsvp-window::before {
+  content: '';
+  position: absolute; left: 50%; top: 0;
+  width: 1px; height: 100%;
+  background: #c9a84c22;
+  transform: translateX(-50%);
+}
+.rsvp-window::after {
+  content: '';
+  position: absolute; left: 50%; top: 0;
+  width: 3px; height: 12px;
+  background: #c9a84c;
+  transform: translateX(-50%);
+}
+
+.word-row {
+  display: flex; align-items: baseline;
+  font-family: Georgia, serif; font-size: 88px;
+  white-space: nowrap; user-select: none;
+  line-height: 1;
+}
+.word-before { color: #4a4038; min-width: 300px; text-align: right; }
+.word-orp { color: #c9a84c; font-weight: 700; width: 1ch; text-align: center; }
+.word-after { color: #e8e0d0; min-width: 300px; text-align: left; }
+.idle-text { color: #333; font-size: 20px; }
+
+/* ── Progress ────────────────────────────── */
+.progress-wrap { width: 100%; margin-bottom: 16px; }
+.progress {
+  width: 100%; height: 4px;
+  background: #1a1a1a; border-radius: 2px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: #c9a84c;
+  border-radius: 2px; width: 0%;
+  transition: width 0.15s linear;
+}
+.progress-info {
+  display: flex; justify-content: space-between;
+  font-size: 13px; color: #4a4038; margin-top: 6px;
+}
+
+/* ── Controls ────────────────────────────── */
+.controls {
+  display: flex; align-items: center;
+  justify-content: center; gap: 10px;
+  margin-bottom: 20px;
+}
+.btn {
+  padding: 12px 20px; border-radius: 8px;
+  border: 1px solid #1e1e1e; background: #141414;
+  color: #e8e0d0; cursor: pointer; font-size: 15px;
+  transition: background .15s, border-color .15s;
+}
+.btn:hover { background: #1e1e1e; border-color: #2a2a2a; }
+.btn-play {
+  background: #c9a84c; border-color: #c9a84c;
+  color: #000; font-weight: 700;
+  min-width: 130px; font-size: 16px;
+}
+.btn-play:hover { background: #d4ad55; }
+.btn-sm { padding: 10px 16px; font-size: 14px; }
+
+/* ── WPM row ─────────────────────────────── */
+.wpm-row {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; max-width: 500px;
+}
+.wpm-row label {
+  font-size: 12px; color: #4a4038;
+  text-transform: uppercase; letter-spacing: .5px;
+  min-width: 36px;
+}
+.wpm-row input[type=range] {
+  flex: 1; -webkit-appearance: none;
+  height: 4px; background: #1a1a1a;
+  border-radius: 2px; outline: none; border: none;
+}
+.wpm-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px;
+  border-radius: 50%; background: #c9a84c;
+  cursor: pointer; border: 2px solid #000;
+}
+.wpm-val { font-size: 16px; font-weight: 700; color: #c9a84c; min-width: 48px; text-align: right; }
+
+/* ── Keyboard hints ──────────────────────── */
+.kbd-hint {
+  display: flex; justify-content: center; gap: 20px;
+  font-size: 12px; color: #2a2a2a; margin-top: 20px;
+}
+.kbd-hint kbd {
+  background: #141414; border: 1px solid #222;
+  border-radius: 4px; padding: 2px 8px; font-family: inherit;
+}
