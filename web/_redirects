@@ -1,0 +1,3 @@
+# Redirect swiftread.app to warpreader.com (preserving path)
+https://swiftread.app/* https://warpreader.com/:splat 301
+http://swiftread.app/* https://warpreader.com/:splat 301
