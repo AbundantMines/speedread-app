@@ -64,14 +64,45 @@ async function loadRecentSessions(limit = 10) {
   return getLocalSessions().slice(0, limit);
 }
 
-// ── WPM trend data for chart ──
+// ── WPM trend data for chart — merges session history + speed test history ──
 async function getWPMTrend(days = 30) {
-  const sessions = await loadRecentSessions(MAX_SESSIONS);
   const cutoff = Date.now() - days * 86400000;
-  return sessions
+
+  // Local reading sessions
+  const sessions = await loadRecentSessions(MAX_SESSIONS);
+  const sessionPoints = sessions
     .filter(s => new Date(s.date).getTime() > cutoff)
     .reverse()
-    .map(s => ({ date: s.date, wpm: s.wpm, words: s.word_count }));
+    .map(s => ({ date: s.date, wpm: s.wpm, source: 'session' }));
+
+  // Server speed test history (logged-in users or anon by ID)
+  let testPoints = [];
+  try {
+    const userId = (typeof currentUser !== 'undefined' && currentUser?.id) || null;
+    const anonId = localStorage.getItem('wr_anon_id');
+    const qs = userId ? `userId=${userId}` : (anonId ? `anonId=${anonId}` : null);
+    if (qs) {
+      const r = await fetch(`/api/wpm?${qs}`);
+      if (r.ok) {
+        const data = await r.json();
+        testPoints = (data || []).map(t => ({ date: t.created_at, wpm: t.wpm, source: 'test' }));
+      }
+    }
+  } catch (_) {}
+
+  // Merge + sort
+  const all = [...sessionPoints, ...testPoints]
+    .filter(p => new Date(p.date).getTime() > cutoff)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  // Deduplicate: if session and test within 1 min, keep session
+  const deduped = all.filter((p, i) => {
+    if (i === 0) return true;
+    const prev = all[i - 1];
+    return Math.abs(new Date(p.date) - new Date(prev.date)) > 60000;
+  });
+
+  return deduped;
 }
 
 // ── Render SVG line chart ──
@@ -98,26 +129,43 @@ function renderWPMChart(containerId, data) {
   });
 
   const polyline = points.join(' ');
+  const ACCENT = '#c9a84c';
   const dots = data.map((d, i) => {
     const [x, y] = points[i].split(',');
-    return `<circle cx="${x}" cy="${y}" r="3" fill="#38bdf8"/>`;
+    const isTest = d.source === 'test';
+    return `<circle cx="${x}" cy="${y}" r="${isTest ? 4 : 3}" fill="${ACCENT}" opacity="${isTest ? 1 : 0.7}" title="${d.wpm} WPM"/>`;
   }).join('');
 
   // Y-axis labels
-  const yLabels = [minWPM, Math.round((minWPM + maxWPM) / 2), maxWPM].map(val => {
+  const yLabels = [minWPM + 20, Math.round((minWPM + maxWPM) / 2), maxWPM - 20].map(val => {
     const y = pad.top + ph - ((val - minWPM) / range) * ph;
-    return `<text x="${pad.left - 8}" y="${y + 4}" fill="#8a8070" font-size="10" text-anchor="end">${Math.round(val)}</text>`;
+    return `<text x="${pad.left - 6}" y="${y + 4}" fill="#8a8070" font-size="10" text-anchor="end">${Math.round(val)}</text>`;
   }).join('');
+
+  // Gradient fill under line
+  const fillPoints = `${pad.left + (0 / (data.length - 1 || 1)) * pw},${pad.top + ph} ${polyline} ${pad.left + ((data.length - 1) / (data.length - 1 || 1)) * pw},${pad.top + ph}`;
+
+  // Improvement delta
+  const first = data[0]?.wpm, last = data[data.length - 1]?.wpm;
+  const delta = first && last ? last - first : 0;
+  const deltaLabel = delta > 0 ? `+${delta} WPM` : delta < 0 ? `${delta} WPM` : '';
+  const deltaColor = delta > 0 ? ACCENT : delta < 0 ? '#ef4444' : '';
 
   container.innerHTML = `
     <svg viewBox="0 0 ${w} ${h}" style="width:100%;max-width:${w}px">
-      <line x1="${pad.left}" y1="${pad.top + ph}" x2="${pad.left + pw}" y2="${pad.top + ph}" stroke="#222" stroke-width="1"/>
-      <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + ph}" stroke="#222" stroke-width="1"/>
+      <defs>
+        <linearGradient id="wpmGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${ACCENT}" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="${ACCENT}" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <line x1="${pad.left}" y1="${pad.top + ph}" x2="${pad.left + pw}" y2="${pad.top + ph}" stroke="#2a2a2a" stroke-width="1"/>
+      <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + ph}" stroke="#2a2a2a" stroke-width="1"/>
       ${yLabels}
-      <text x="${pad.left + pw/2}" y="${h - 4}" fill="#8a8070" font-size="10" text-anchor="middle">Sessions</text>
-      <text x="12" y="${pad.top + ph/2}" fill="#8a8070" font-size="10" text-anchor="middle" transform="rotate(-90,12,${pad.top + ph/2})">WPM</text>
-      <polyline points="${polyline}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linejoin="round"/>
+      <polygon points="${fillPoints}" fill="url(#wpmGrad)"/>
+      <polyline points="${polyline}" fill="none" stroke="${ACCENT}" stroke-width="2" stroke-linejoin="round"/>
       ${dots}
+      ${deltaLabel ? `<text x="${pad.left + pw}" y="${pad.top + 14}" fill="${deltaColor}" font-size="11" font-weight="700" text-anchor="end">${deltaLabel}</text>` : ''}
     </svg>
   `;
 }

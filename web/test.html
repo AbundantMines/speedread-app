@@ -158,6 +158,14 @@
         </div>
       </div>
 
+      <!-- Progress chart — shown for returning users with history -->
+      <div id="progress-chart-section" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:24px;margin:32px 0;text-align:left">
+        <h3 style="font-size:1rem;font-weight:700;margin-bottom:4px">📈 Your reading speed over time</h3>
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:16px">Every test you take is logged — this is your growth curve.</p>
+        <canvas id="wpm-chart" height="120" style="width:100%;display:block"></canvas>
+        <div id="wpm-improvement" style="margin-top:12px;font-size:.9rem;font-weight:700;color:var(--accent)"></div>
+      </div>
+
       <div class="cta-section">
         <h3 id="cta-headline">Start training — 7 days for $1</h3>
         <p id="cta-sub">Most readers hit <strong id="cta-target-wpm">350+</strong> WPM in their first month. $1 today, cancel before day 7 and owe nothing more.</p>
@@ -279,8 +287,98 @@
       document.getElementById('cta-sub').innerHTML = `Top readers use WarpReader to maintain and push past <strong>${targetWpm} WPM</strong>. $1 today · cancel before day 7 if not for you.`;
     }
 
-    // Store result
-    try { localStorage.setItem('speedread_wpm_test', JSON.stringify({ wpm, pct, ts: new Date().toISOString() })); } catch(_) {}
+    // Store result locally
+    const testEntry = { wpm, pct, ts: new Date().toISOString() };
+    try { localStorage.setItem('speedread_wpm_test', JSON.stringify(testEntry)); } catch(_) {}
+
+    // Save to server + load progress chart
+    const anonId = localStorage.getItem('wr_anon_id') || (() => {
+      const id = 'anon_' + Math.random().toString(36).slice(2);
+      localStorage.setItem('wr_anon_id', id);
+      return id;
+    })();
+    const userId = (typeof currentUser !== 'undefined' && currentUser?.id) || null;
+
+    fetch('/api/wpm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, anonId, wpm, percentile: pct, source: 'test_page' })
+    }).catch(() => {});
+
+    // Load history and show progress chart
+    const histKey = userId ? `userId=${userId}` : `anonId=${anonId}`;
+    fetch(`/api/wpm?${histKey}`).then(r => r.json()).then(history => {
+      if (history && history.length > 1) renderProgressChart(history);
+    }).catch(() => {});
+  }
+
+  function renderProgressChart(history) {
+    if (!history || history.length < 2) return;
+    const section = document.getElementById('progress-chart-section');
+    const canvas = document.getElementById('wpm-chart');
+    if (!section || !canvas) return;
+
+    section.style.display = 'block';
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = canvas.offsetWidth * dpr;
+    canvas.height = 120 * dpr;
+    ctx.scale(dpr, dpr);
+
+    const W = canvas.offsetWidth, H = 120;
+    const pts = history.map(r => ({ wpm: r.wpm, ts: new Date(r.created_at || r.ts) }));
+    const minWpm = Math.min(...pts.map(p => p.wpm)) - 20;
+    const maxWpm = Math.max(...pts.map(p => p.wpm)) + 20;
+    const pad = { top: 16, bottom: 24, left: 32, right: 16 };
+    const w = W - pad.left - pad.right;
+    const h = H - pad.top - pad.bottom;
+
+    function xPos(i) { return pad.left + (i / (pts.length - 1)) * w; }
+    function yPos(v) { return pad.top + h - ((v - minWpm) / (maxWpm - minWpm)) * h; }
+
+    // Gradient fill
+    const grad = ctx.createLinearGradient(0, pad.top, 0, H);
+    grad.addColorStop(0, 'rgba(201,168,76,0.3)');
+    grad.addColorStop(1, 'rgba(201,168,76,0)');
+    ctx.beginPath();
+    ctx.moveTo(xPos(0), yPos(pts[0].wpm));
+    pts.forEach((p, i) => { if (i > 0) ctx.lineTo(xPos(i), yPos(p.wpm)); });
+    ctx.lineTo(xPos(pts.length - 1), H - pad.bottom);
+    ctx.lineTo(xPos(0), H - pad.bottom);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    ctx.strokeStyle = '#c9a84c';
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    pts.forEach((p, i) => { i === 0 ? ctx.moveTo(xPos(i), yPos(p.wpm)) : ctx.lineTo(xPos(i), yPos(p.wpm)); });
+    ctx.stroke();
+
+    // Dots + labels
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    pts.forEach((p, i) => {
+      ctx.beginPath();
+      ctx.arc(xPos(i), yPos(p.wpm), 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#c9a84c';
+      ctx.fill();
+      ctx.fillStyle = '#999';
+      ctx.fillText(p.wpm, xPos(i), yPos(p.wpm) - 8);
+    });
+
+    // Improvement summary
+    const first = pts[0].wpm, last = pts[pts.length - 1].wpm;
+    const delta = last - first;
+    const impEl = document.getElementById('wpm-improvement');
+    if (impEl && delta !== 0) {
+      impEl.textContent = delta > 0
+        ? `+${delta} WPM since your first test 🚀`
+        : `${delta} WPM from baseline — try the 28-day course`;
+    }
   }
 
   function submitCapture(e) {

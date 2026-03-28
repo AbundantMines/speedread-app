@@ -547,6 +547,22 @@ function saveSessionData() {
     comprehension_score: null,
   });
   sessionStartTime = null;
+
+  // Save WPM to server (fire-and-forget)
+  if (wpm >= 50 && duration >= 30) {
+    const userId = (typeof currentUser !== 'undefined' && currentUser?.id) || null;
+    const anonId = localStorage.getItem('wr_anon_id') || (() => {
+      const id = 'anon_' + Math.random().toString(36).slice(2);
+      try { localStorage.setItem('wr_anon_id', id); } catch (_) {}
+      return id;
+    })();
+    fetch('/api/wpm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, anonId, wpm, percentile: null, source: 'session' }),
+    }).catch(() => {});
+  }
+
   refreshHistory();
 }
 
@@ -1087,7 +1103,11 @@ function updateAccountUI() {
 }
 
 // Called by auth.js when profile loads
-function onProfileLoaded(profile) { updateAccountUI(); }
+function onProfileLoaded(profile) {
+  updateAccountUI();
+  // Refresh chart — now has server data available
+  refreshHistory();
+}
 
 // ── DRAG & DROP ──
 const dropZone = document.getElementById('drop-zone');
@@ -2444,4 +2464,101 @@ window.addEventListener('DOMContentLoaded', () => {
       if (modal) modal.classList.remove('hidden');
     }, 300);
   }
+
+  // ── Post-checkout: link Stripe session to account ──
+  if (params.get('upgraded') === 'true') {
+    const sessionId = params.get('session_id') || '';
+    window.history.replaceState({}, '', window.location.pathname); // clean URL
+    localStorage.setItem('wr_stripe_session', sessionId);
+
+    setTimeout(() => {
+      if (currentUser) {
+        // Already logged in — link the upgrade to their account
+        _linkStripeToAccount(sessionId, currentUser.email);
+        showToast('🎉 You\'re now Pro! Your account is activated.', 5000);
+      } else {
+        // Not logged in — show upgrade success modal with signup prompt
+        _showUpgradeSuccessModal(sessionId);
+      }
+    }, 800);
+  }
 });
+
+// ── Link Stripe session to Supabase account ──
+async function _linkStripeToAccount(sessionId, email) {
+  if (!email) return;
+  try {
+    // Update profile plan via webhook (idempotent — webhook does the heavy lifting)
+    // Here we just ensure the profile exists with the right email
+    if (supabaseClient && currentUser) {
+      await supabaseClient.from('profiles').upsert({
+        id: currentUser.id,
+        email: currentUser.email,
+        plan: 'pro',
+        stripe_session_id: sessionId,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+      await fetchUserProfile();
+      updateAccountUI();
+    }
+  } catch (e) {
+    console.warn('[WarpReader] Account link failed:', e);
+  }
+}
+
+// ── Upgrade success modal (prompts account creation for new buyers) ──
+function _showUpgradeSuccessModal(sessionId) {
+  const existing = document.getElementById('upgrade-success-modal');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'upgrade-success-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML = `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:32px 28px;max-width:420px;width:100%;text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:8px">🎉</div>
+      <h2 style="font-size:1.4rem;font-weight:800;margin-bottom:8px">Payment confirmed!</h2>
+      <p style="color:var(--text-muted);font-size:.95rem;margin-bottom:20px">
+        Create a free account to save your progress, sync your library across devices, and track your WPM over time.
+      </p>
+      <input type="email" id="upgrade-email" placeholder="your@email.com" autocomplete="email"
+        style="width:100%;box-sizing:border-box;background:var(--bg-elevated,#111);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-size:1rem;margin-bottom:8px">
+      <input type="password" id="upgrade-password" placeholder="Create a password (8+ chars)"
+        style="width:100%;box-sizing:border-box;background:var(--bg-elevated,#111);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-size:1rem;margin-bottom:12px">
+      <button onclick="_submitUpgradeSignup('${sessionId}')" style="width:100%;background:var(--accent);color:#000;border:none;border-radius:10px;padding:13px;font-weight:800;font-size:1rem;cursor:pointer">
+        Create Account & Activate Pro →
+      </button>
+      <button onclick="document.getElementById('upgrade-success-modal').remove()"
+        style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.85rem;margin-top:12px;display:block;width:100%">
+        Skip for now (you can create an account later)
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('upgrade-email')?.focus(), 100);
+}
+
+async function _submitUpgradeSignup(sessionId) {
+  const email = document.getElementById('upgrade-email')?.value?.trim();
+  const password = document.getElementById('upgrade-password')?.value;
+  if (!email || !password || password.length < 8) {
+    showToast('Please enter a valid email and password (8+ characters)');
+    return;
+  }
+  try {
+    const result = await signUp(email, password);
+    if (result?.error) {
+      // Maybe they already have an account — try login
+      const loginResult = await signIn(email, password);
+      if (loginResult?.error) {
+        showToast('Could not create account: ' + (result.error.message || 'unknown error'));
+        return;
+      }
+    }
+    document.getElementById('upgrade-success-modal')?.remove();
+    await _linkStripeToAccount(sessionId, email);
+    showToast('✅ Account created and Pro activated! Welcome to WarpReader Pro.', 5000);
+  } catch (e) {
+    showToast('Signup failed — please try again');
+  }
+}
