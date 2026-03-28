@@ -527,7 +527,7 @@ function toggleComprehension() {
 function getStorageKey() { return `speedread_progress_${currentFile.name}_${currentFile.size}`; }
 function saveProgress() {
   if (!currentFile.name) return;
-  try { localStorage.setItem(getStorageKey(), JSON.stringify({ wordIdx: currentIdx, wpm, contextOn: contextVisible, timestamp: Date.now() })); } catch(e) {}
+  try { localStorage.setItem(getStorageKey(), JSON.stringify({ wordIdx: currentIdx, wpm, contextOn: contextVisible, timestamp: Date.now(), totalWords: words.length })); } catch(e) {}
 }
 function loadProgress() {
   if (!currentFile.name) return null;
@@ -1159,6 +1159,106 @@ function onProfileLoaded(profile) {
   updateAccountUI();
   // Refresh chart — now has server data available
   refreshHistory();
+  // Re-render mobile banners (auth state may have changed)
+  renderMobileBanners();
+}
+
+// ── MOBILE BANNERS (resume + auth) ──
+function renderMobileBanners() {
+  const container = document.getElementById('mobile-banners');
+  if (!container) return;
+  container.innerHTML = '';
+
+  // 1. Resume banner — find most recent reading progress
+  const resumeKeys = Object.keys(localStorage).filter(k => k.startsWith('speedread_progress_'));
+  let bestResume = null;
+  for (const key of resumeKeys) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(key));
+      if (saved && saved.wordIdx > 0 && saved.timestamp) {
+        if (!bestResume || saved.timestamp > bestResume.timestamp) {
+          const docName = key.replace('speedread_progress_', '').replace(/_\d+$/, '');
+          bestResume = { ...saved, docName, key };
+        }
+      }
+    } catch (_) {}
+  }
+
+  if (bestResume) {
+    const ago = _timeAgo(bestResume.timestamp);
+    const pct = bestResume.totalWords ? Math.round((bestResume.wordIdx / bestResume.totalWords) * 100) : null;
+    const pctStr = pct ? ` · ${pct}% done` : '';
+    const banner = document.createElement('div');
+    banner.className = 'mobile-resume-banner';
+    banner.onclick = () => _resumeFromBanner(bestResume);
+    banner.innerHTML = `
+      <div class="resume-icon">📖</div>
+      <div class="resume-info">
+        <div class="resume-title">${_esc(bestResume.docName)}</div>
+        <div class="resume-meta">Word ${(bestResume.wordIdx + 1).toLocaleString()}${pctStr} · ${ago}</div>
+      </div>
+      <button class="resume-btn">Resume →</button>
+    `;
+    container.appendChild(banner);
+  }
+
+  // 2. Auth banner — show if not logged in
+  if (typeof isLoggedIn === 'function' && !isLoggedIn()) {
+    const hasLead = typeof hasSubmittedLead === 'function' && hasSubmittedLead();
+    const authBanner = document.createElement('div');
+    authBanner.className = 'mobile-auth-banner';
+    if (hasLead) {
+      const lead = typeof getStoredLead === 'function' ? getStoredLead() : null;
+      authBanner.innerHTML = `
+        <div class="auth-icon">📧</div>
+        <div class="auth-info">
+          <div class="auth-title">Check your inbox</div>
+          <div class="auth-sub">Click the sign-in link we sent${lead?.email ? ' to ' + lead.email : ''} to sync across devices</div>
+        </div>
+        <button class="auth-btn" onclick="event.stopPropagation();document.getElementById('auth-modal').classList.remove('hidden')">Resend</button>
+      `;
+    } else {
+      authBanner.innerHTML = `
+        <div class="auth-icon">🔑</div>
+        <div class="auth-info">
+          <div class="auth-title">Sign in to sync across devices</div>
+          <div class="auth-sub">Keep your place, speed, and library everywhere</div>
+        </div>
+        <button class="auth-btn" onclick="event.stopPropagation();document.getElementById('auth-modal').classList.remove('hidden')">Sign in</button>
+      `;
+    }
+    container.appendChild(authBanner);
+  }
+}
+
+function _resumeFromBanner(saved) {
+  // Re-load the file from stored data or prompt to re-upload
+  // For now, if we have saved text in the library, load it
+  const lib = typeof getLocalLibrary === 'function' ? getLocalLibrary() : [];
+  const match = lib.find(b => b.title === saved.docName);
+  if (match && match.text) {
+    loadText(match.text, saved.docName, match.size || 0);
+  } else {
+    // Can't reload file — show a helpful message
+    showToast(`Upload "${saved.docName}" again to resume from word ${(saved.wordIdx + 1).toLocaleString()}`, 5000);
+  }
+}
+
+function _timeAgo(ts) {
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function _esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
 }
 
 // ── DRAG & DROP ──
@@ -2472,6 +2572,9 @@ window.addEventListener('DOMContentLoaded', () => {
   // Restore preferred WPM from last session
   const savedWPM = parseInt(localStorage.getItem('speedread_preferred_wpm'), 10);
   if (savedWPM >= 100 && savedWPM <= 1500) setWPM(savedWPM);
+
+  // Mobile banners: resume session + sign in
+  renderMobileBanners();
 
   updateAccountUI();
   updateTrialBanner();
