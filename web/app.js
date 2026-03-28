@@ -87,7 +87,7 @@ function showIdleDisplay(msg) {
   document.getElementById('word-row').style.display = 'none';
   const idle = document.getElementById('rsvp-idle');
   idle.style.display = '';
-  idle.textContent = msg || 'Ready to read';
+  idle.textContent = msg || '⚡ Warpreader';
 }
 
 // ── PLAY / PAUSE ──
@@ -663,7 +663,7 @@ function processText(text) {
   sessionWordsRead = 0;
   state = 'ready';
   setStatus('hidden');
-  showIdleDisplay('Ready to read');
+  showIdleDisplay('⚡ Warpreader');
   updateProgress();
 
   // Soft email capture — show 3s after file load, only once per session
@@ -722,7 +722,7 @@ function closeBook() {
   sessionStartTime = null;
   document.getElementById('upload-zone').style.display = '';
   document.getElementById('reader-zone').classList.remove('active');
-  document.getElementById('book-title-text').textContent = 'Ready to read';
+  document.getElementById('book-title-text').textContent = '⚡ Warpreader';
   setStatus('hidden');
   document.getElementById('progress-fill').style.width = '0%';
   document.getElementById('progress-pct').textContent = '0%';

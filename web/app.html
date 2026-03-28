@@ -358,13 +358,15 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
   .word-before, .word-after { min-width: 120px; }
   .rsvp-window { height: 76px; }
   .play-btn { min-width: 120px; font-size: 15px; padding: 14px 20px; min-height: 50px; }
-  .topbar { flex-wrap: nowrap; padding: 8px 12px; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .topbar-actions { flex-wrap: nowrap; gap: 4px; flex-shrink: 0; }
-  .topbar-title { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-  .topbar-actions select { display: none; } /* hide font selector on mobile — use sidebar */
-  .topbar-actions .font-size-control { display: none; } /* hide size buttons on mobile */
-  .topbar-actions .btn-sm { padding: 6px 8px; font-size: 14px; }
-  #level-badge { font-size: 11px !important; padding: 3px 8px !important; }
+  .topbar { flex-wrap: nowrap; padding: 8px 12px; gap: 8px; }
+  .topbar-actions { flex-wrap: nowrap; gap: 6px; flex-shrink: 0; }
+  .topbar-title { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+  /* Hide everything except theme toggle on mobile — rest lives in sidebar */
+  .topbar-actions select,
+  .topbar-actions .font-size-control,
+  .topbar-actions .btn-sm { display: none !important; }
+  .topbar-actions .btn-sm#theme-btn { display: inline-flex !important; } /* keep theme toggle */
+  #level-badge { display: none !important; }
   .controls-section, .wpm-section, .progress-section, .footer-row,
   .rsvp-window, #context-strip { max-width: 100vw; width: 100%; }
   .nav-row { flex-wrap: wrap; }
@@ -375,8 +377,6 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
   .word-row { font-size: 40px; }
   .word-before, .word-after { min-width: 100px; }
   .rsvp-window { height: 68px; }
-  .topbar-title { font-size: 12px; }
-  .topbar-actions .btn-sm { padding: 5px 6px; font-size: 13px; }
 }
 /* Mobile resume banner */
 .mobile-resume-banner {
@@ -466,7 +466,7 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 <!-- MAIN CONTENT -->
 <div class="main-content">
   <div class="topbar" id="topbar">
-    <div class="topbar-title">📖 <strong id="book-title-text">Ready to read</strong></div>
+    <div class="topbar-title"><strong id="book-title-text">⚡ Warpreader</strong></div>
     <div class="topbar-actions">
       <select id="font-select" onchange="setFont(this.value)" style="background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer">
         <option value="Georgia, serif" selected>Serif (default)</option>
