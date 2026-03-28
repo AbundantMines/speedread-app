@@ -1367,18 +1367,86 @@ async function _saveDocToCloud(textContent) {
   }
 }
 
-// Update position in cloud on every progress save
+// ── OFFLINE-FIRST SYNC ──
+// Progress always saves to localStorage (works offline).
+// Cloud sync is attempted immediately but queued if offline.
+// On reconnect, all queued syncs flush automatically.
+
+const SYNC_QUEUE_KEY = 'warpreader_sync_queue';
+
+function _getSyncQueue() {
+  try { return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY) || '[]'); } catch { return []; }
+}
+
+function _saveSyncQueue(q) {
+  try { localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q.slice(-50))); } catch {} // keep last 50
+}
+
+function _queueSync(title, position, wpmVal) {
+  const q = _getSyncQueue();
+  // Dedupe: replace any existing entry for same title
+  const filtered = q.filter(e => e.title !== title);
+  filtered.push({ title, position, wpm: wpmVal, ts: Date.now() });
+  _saveSyncQueue(filtered);
+}
+
+async function _flushSyncQueue() {
+  if (!supabaseClient || !currentUser) return;
+  const q = _getSyncQueue();
+  if (!q.length) return;
+
+  const remaining = [];
+  for (const entry of q) {
+    try {
+      const { error } = await supabaseClient.from('documents').update({
+        last_position: entry.position,
+        last_wpm: entry.wpm,
+        updated_at: new Date(entry.ts).toISOString(),
+      }).eq('user_id', currentUser.id).eq('title', entry.title);
+      if (error) remaining.push(entry); // keep if failed
+    } catch {
+      remaining.push(entry);
+    }
+  }
+  _saveSyncQueue(remaining);
+  if (q.length > remaining.length) {
+    console.log(`[Warpreader] Synced ${q.length - remaining.length} queued position updates`);
+  }
+}
+
+// Listen for online/offline events
+window.addEventListener('online', () => {
+  console.log('[Warpreader] Back online — flushing sync queue');
+  if (typeof showToast === 'function') showToast('🌐 Back online — syncing your progress...', 2000);
+  _flushSyncQueue();
+});
+
+window.addEventListener('offline', () => {
+  if (typeof showToast === 'function') showToast('📴 Offline — your progress is saved locally and will sync when you reconnect', 3000);
+});
+
+// Update position in cloud on every progress save (with offline fallback)
 const _origSaveProgress = saveProgress;
 saveProgress = function() {
-  _origSaveProgress();
-  if (supabaseClient && currentUser && currentFile.name && !currentFile._courseContent) {
-    const title = currentFile.name.replace(/\.[^.]+$/, '');
-    supabaseClient.from('documents').update({
-      last_position: currentIdx,
-      last_wpm: wpm,
-      updated_at: new Date().toISOString(),
-    }).eq('user_id', currentUser.id).eq('title', title).then(() => {}).catch(() => {});
+  _origSaveProgress(); // always saves to localStorage (works offline)
+
+  if (!currentFile.name || currentFile._courseContent) return;
+  const title = currentFile.name.replace(/\.[^.]+$/, '');
+
+  if (!navigator.onLine || !supabaseClient || !currentUser) {
+    // Offline or not logged in — queue for later
+    _queueSync(title, currentIdx, wpm);
+    return;
   }
+
+  // Online — try cloud sync, queue if it fails
+  supabaseClient.from('documents').update({
+    last_position: currentIdx,
+    last_wpm: wpm,
+    updated_at: new Date().toISOString(),
+  }).eq('user_id', currentUser.id).eq('title', title)
+    .then(({ error }) => { if (error) _queueSync(title, currentIdx, wpm); })
+    .catch(() => _queueSync(title, currentIdx, wpm));
 };
 
 // Load document from cloud — handles both inline and chunked storage
@@ -2745,6 +2813,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Mobile banners: resume session + sign in
   renderMobileBanners();
+
+  // Flush any offline sync queue from previous sessions
+  setTimeout(() => { if (navigator.onLine) _flushSyncQueue(); }, 3000);
 
   updateAccountUI();
   updateTrialBanner();
