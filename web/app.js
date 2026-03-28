@@ -666,6 +666,9 @@ function processText(text) {
   showIdleDisplay('⚡ Warpreader');
   updateProgress();
 
+  // Save document text to cloud (for cross-device resume)
+  _saveDocToCloud(words.join(' '));
+
   // Soft email capture — show 3s after file load, only once per session
   if (!isPro() && !hasSubmittedLead() && !sessionStorage.getItem('lead_prompt_shown')) {
     sessionStorage.setItem('lead_prompt_shown', '1');
@@ -1165,24 +1168,44 @@ function onProfileLoaded(profile) {
 }
 
 // ── MOBILE BANNERS (resume + auth) ──
-function renderMobileBanners() {
+async function renderMobileBanners() {
   const container = document.getElementById('mobile-banners');
   if (!container) return;
   container.innerHTML = '';
 
-  // 1. Resume banner — find most recent reading progress
-  const resumeKeys = Object.keys(localStorage).filter(k => k.startsWith('speedread_progress_'));
+  // 1. Resume banner — check cloud docs first, then localStorage
   let bestResume = null;
-  for (const key of resumeKeys) {
-    try {
-      const saved = JSON.parse(localStorage.getItem(key));
-      if (saved && saved.wordIdx > 0 && saved.timestamp) {
-        if (!bestResume || saved.timestamp > bestResume.timestamp) {
-          const docName = key.replace('speedread_progress_', '').replace(/_\d+$/, '');
-          bestResume = { ...saved, docName, key };
+
+  // Try cloud documents (if logged in)
+  const cloudDocs = await _getCloudDocs();
+  if (cloudDocs.length > 0) {
+    const d = cloudDocs[0]; // most recent
+    if (d.last_position > 0) {
+      bestResume = {
+        docName: d.title,
+        wordIdx: d.last_position,
+        totalWords: d.word_count,
+        wpm: d.last_wpm,
+        timestamp: new Date(d.updated_at).getTime(),
+        source: 'cloud',
+      };
+    }
+  }
+
+  // Fall back to localStorage
+  if (!bestResume) {
+    const resumeKeys = Object.keys(localStorage).filter(k => k.startsWith('speedread_progress_'));
+    for (const key of resumeKeys) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(key));
+        if (saved && saved.wordIdx > 0 && saved.timestamp) {
+          if (!bestResume || saved.timestamp > bestResume.timestamp) {
+            const docName = key.replace('speedread_progress_', '').replace(/_\d+$/, '');
+            bestResume = { ...saved, docName, key, source: 'local' };
+          }
         }
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
   }
 
   if (bestResume) {
@@ -1232,17 +1255,41 @@ function renderMobileBanners() {
   }
 }
 
-function _resumeFromBanner(saved) {
-  // Re-load the file from stored data or prompt to re-upload
-  // For now, if we have saved text in the library, load it
-  const lib = typeof getLocalLibrary === 'function' ? getLocalLibrary() : [];
-  const match = lib.find(b => b.title === saved.docName);
-  if (match && match.text) {
-    loadText(match.text, saved.docName, match.size || 0);
-  } else {
-    // Can't reload file — show a helpful message
-    showToast(`Upload "${saved.docName}" again to resume from word ${(saved.wordIdx + 1).toLocaleString()}`, 5000);
+async function _resumeFromBanner(saved) {
+  // Try cloud first, then local library, then prompt re-upload
+  const title = saved.docName || saved.title;
+
+  // 1. Try cloud (Supabase documents table)
+  if (supabaseClient && currentUser) {
+    showToast('Loading from cloud...', 2000);
+    const cloudDoc = await _loadDocFromCloud(title);
+    if (cloudDoc?.content) {
+      currentFile = { name: title, size: cloudDoc.content.length };
+      processText(cloudDoc.content);
+      currentIdx = cloudDoc.last_position || saved.wordIdx || 0;
+      if (cloudDoc.last_wpm) setWPM(cloudDoc.last_wpm);
+      displayWord(words[currentIdx]);
+      updateProgress();
+      showToast(`📖 Resumed "${title}" from word ${(currentIdx + 1).toLocaleString()}`, 3000);
+      return;
+    }
   }
+
+  // 2. Try local library
+  const lib = typeof getLocalLibrary === 'function' ? getLocalLibrary() : [];
+  const match = lib.find(b => b.title === title);
+  if (match && match.text) {
+    currentFile = { name: title, size: match.text.length };
+    processText(match.text);
+    currentIdx = saved.wordIdx || 0;
+    displayWord(words[currentIdx]);
+    updateProgress();
+    showToast(`📖 Resumed "${title}" from word ${(currentIdx + 1).toLocaleString()}`, 3000);
+    return;
+  }
+
+  // 3. Can't find content — prompt re-upload
+  showToast(`Upload "${title}" again to resume from word ${((saved.wordIdx || 0) + 1).toLocaleString()}`, 5000);
 }
 
 function _timeAgo(ts) {
@@ -1260,6 +1307,73 @@ function _esc(s) {
   const d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;
+}
+
+// ── CLOUD DOCUMENT SYNC ──
+// Saves document text + position to Supabase so users can resume on any device
+async function _saveDocToCloud(textContent) {
+  if (!supabaseClient || !currentUser || !currentFile.name) return;
+  if (currentFile._courseContent) return; // don't save course samples
+  const title = currentFile.name.replace(/\.[^.]+$/, '');
+  try {
+    await supabaseClient.from('documents').upsert({
+      user_id: currentUser.id,
+      title: title,
+      content: textContent.slice(0, 5000000), // 5MB text limit
+      source: 'upload',
+      word_count: words.length,
+      last_position: currentIdx,
+      last_wpm: wpm,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id, title' });
+  } catch (e) {
+    console.warn('[Warpreader] Cloud doc save failed:', e);
+  }
+}
+
+// Update position in cloud on every progress save
+const _origSaveProgress = saveProgress;
+saveProgress = function() {
+  _origSaveProgress();
+  if (supabaseClient && currentUser && currentFile.name && !currentFile._courseContent) {
+    const title = currentFile.name.replace(/\.[^.]+$/, '');
+    supabaseClient.from('documents').update({
+      last_position: currentIdx,
+      last_wpm: wpm,
+      updated_at: new Date().toISOString(),
+    }).eq('user_id', currentUser.id).eq('title', title).then(() => {}).catch(() => {});
+  }
+};
+
+// Load document from cloud for cross-device resume
+async function _loadDocFromCloud(title) {
+  if (!supabaseClient || !currentUser) return null;
+  try {
+    const { data, error } = await supabaseClient
+      .from('documents')
+      .select('content, last_position, last_wpm, word_count, title')
+      .eq('user_id', currentUser.id)
+      .eq('title', title)
+      .single();
+    if (error || !data?.content) return null;
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Get user's recent cloud documents (for resume banner)
+async function _getCloudDocs() {
+  if (!supabaseClient || !currentUser) return [];
+  try {
+    const { data, error } = await supabaseClient
+      .from('documents')
+      .select('title, last_position, last_wpm, word_count, updated_at')
+      .eq('user_id', currentUser.id)
+      .order('updated_at', { ascending: false })
+      .limit(5);
+    return error ? [] : (data || []);
+  } catch (e) { return []; }
 }
 
 // ── DRAG & DROP ──
