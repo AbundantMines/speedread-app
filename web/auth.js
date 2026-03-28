@@ -46,15 +46,51 @@ function handleAuthChange(event, session) {
       localStorage.removeItem('wr_pending_stripe_email');
       if (typeof showToast === 'function') showToast('🎉 Pro activated! Your account is fully set up.', 5000);
     }
-    // Redirect to app only if on landing page after OAuth callback
+    // Redirect to app if on landing page
     const isLanding = window.location.pathname === '/' ||
                       window.location.pathname.endsWith('index.html');
     if (isLanding) {
       window.location.href = 'app.html';
+      return;
+    }
+
+    // On app.html — show welcome state and auto-resume
+    if (typeof updateAccountUI === 'function') updateAccountUI();
+    if (typeof closeAuthModal === 'function') closeAuthModal();
+    if (typeof renderMobileBanners === 'function') renderMobileBanners();
+
+    // Check if this is a magic link callback (has hash with access_token)
+    const isAuthCallback = window.location.hash.includes('access_token');
+    if (isAuthCallback) {
+      // Clean the URL
+      history.replaceState(null, '', window.location.pathname);
+      // Show welcome + try to auto-resume last document
+      const email = session.user.email || 'reader';
+      if (typeof showToast === 'function') showToast('✅ Welcome back, ' + email.split('@')[0] + '! Loading your library...', 3000);
+      // Auto-resume most recent cloud document after a brief delay
+      setTimeout(async () => {
+        if (typeof _getCloudDocs === 'function') {
+          const docs = await _getCloudDocs();
+          if (docs.length > 0 && docs[0].last_position > 0) {
+            const d = docs[0];
+            if (typeof _loadDocFromCloud === 'function') {
+              const cloudDoc = await _loadDocFromCloud(d.title);
+              if (cloudDoc?.content) {
+                currentFile = { name: d.title, size: cloudDoc.content.length };
+                if (typeof processText === 'function') processText(cloudDoc.content);
+                currentIdx = cloudDoc.last_position || 0;
+                if (cloudDoc.last_wpm && typeof setWPM === 'function') setWPM(cloudDoc.last_wpm);
+                if (typeof displayWord === 'function') displayWord(words[currentIdx]);
+                if (typeof updateProgress === 'function') updateProgress();
+                if (typeof showToast === 'function') showToast('📖 Resumed "' + d.title + '" — tap Play to continue', 4000);
+                return;
+              }
+            }
+          }
+        }
+        if (typeof showToast === 'function') showToast('✅ Signed in! Upload a file or pick from the library to start reading.', 4000);
+      }, 1000);
     } else {
-      // Already on app — just update UI
-      if (typeof updateAccountUI === 'function') updateAccountUI();
-      if (typeof closeAuthModal === 'function') closeAuthModal();
       if (typeof showToast === 'function') showToast('✅ Signed in as ' + (session.user.email || 'user'));
     }
   } else if (event === 'SIGNED_OUT') {

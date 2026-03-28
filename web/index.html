@@ -8,6 +8,15 @@
 <!-- Favicon -->
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="shortcut icon" href="favicon.svg">
+<!-- Catch Supabase auth callbacks and redirect to app immediately -->
+<script>
+(function() {
+  var h = window.location.hash;
+  if (h && (h.indexOf('access_token=') !== -1 || h.indexOf('type=magiclink') !== -1 || h.indexOf('type=signup') !== -1 || h.indexOf('type=recovery') !== -1)) {
+    window.location.replace('/app.html' + h);
+  }
+})();
+</script>
 <!-- Open Graph -->
 <meta property="og:title" content="Warpreader — Read 3× Faster. Miss Nothing.">
 <meta property="og:description" content="RSVP speed reading with AI comprehension coaching. Read faster, retain more. Free to start, no download required.">
