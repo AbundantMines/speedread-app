@@ -1310,22 +1310,58 @@ function _esc(s) {
 }
 
 // ── CLOUD DOCUMENT SYNC ──
-// Saves document text + position to Supabase so users can resume on any device
+// Saves document text + position to Supabase. Chunks large files (>4MB) automatically.
+const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB per chunk (under Supabase 6MB API limit)
+
 async function _saveDocToCloud(textContent) {
   if (!supabaseClient || !currentUser || !currentFile.name) return;
-  if (currentFile._courseContent) return; // don't save course samples
+  if (currentFile._courseContent) return;
   const title = currentFile.name.replace(/\.[^.]+$/, '');
+  const textSize = new Blob([textContent]).size;
+
   try {
-    await supabaseClient.from('documents').upsert({
-      user_id: currentUser.id,
-      title: title,
-      content: textContent.slice(0, 5000000), // 5MB text limit
-      source: 'upload',
-      word_count: words.length,
-      last_position: currentIdx,
-      last_wpm: wpm,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id, title' });
+    if (textSize <= CHUNK_SIZE) {
+      // Small file — store inline (most books)
+      await supabaseClient.from('documents').upsert({
+        user_id: currentUser.id,
+        title: title,
+        content: textContent,
+        source: 'upload',
+        word_count: words.length,
+        last_position: currentIdx,
+        last_wpm: wpm,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id, title' });
+    } else {
+      // Large file — store metadata + chunks
+      const { data: doc } = await supabaseClient.from('documents').upsert({
+        user_id: currentUser.id,
+        title: title,
+        content: null, // text stored in chunks
+        source: 'upload_chunked',
+        word_count: words.length,
+        last_position: currentIdx,
+        last_wpm: wpm,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id, title' }).select('id').single();
+
+      if (doc?.id) {
+        // Delete old chunks
+        await supabaseClient.from('document_chunks').delete().eq('document_id', doc.id);
+
+        // Upload chunks sequentially
+        const totalChunks = Math.ceil(textContent.length / CHUNK_SIZE);
+        for (let i = 0; i < totalChunks; i++) {
+          const chunk = textContent.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+          await supabaseClient.from('document_chunks').insert({
+            document_id: doc.id,
+            chunk_index: i,
+            content: chunk,
+          });
+        }
+        console.log(`[Warpreader] Saved ${totalChunks} chunks for "${title}" (${(textSize / 1024 / 1024).toFixed(1)}MB)`);
+      }
+    }
   } catch (e) {
     console.warn('[Warpreader] Cloud doc save failed:', e);
   }
@@ -1345,18 +1381,37 @@ saveProgress = function() {
   }
 };
 
-// Load document from cloud for cross-device resume
+// Load document from cloud — handles both inline and chunked storage
 async function _loadDocFromCloud(title) {
   if (!supabaseClient || !currentUser) return null;
   try {
     const { data, error } = await supabaseClient
       .from('documents')
-      .select('content, last_position, last_wpm, word_count, title')
+      .select('id, content, source, last_position, last_wpm, word_count, title')
       .eq('user_id', currentUser.id)
       .eq('title', title)
       .single();
-    if (error || !data?.content) return null;
-    return data;
+    if (error || !data) return null;
+
+    // Inline content (small files)
+    if (data.content) return data;
+
+    // Chunked content (large files)
+    if (data.source === 'upload_chunked' && data.id) {
+      const { data: chunks, error: chunkErr } = await supabaseClient
+        .from('document_chunks')
+        .select('content, chunk_index')
+        .eq('document_id', data.id)
+        .order('chunk_index', { ascending: true });
+
+      if (chunkErr || !chunks?.length) return null;
+
+      data.content = chunks.map(c => c.content).join('');
+      console.log(`[Warpreader] Loaded ${chunks.length} chunks for "${title}" (${(data.content.length / 1024 / 1024).toFixed(1)}MB)`);
+      return data;
+    }
+
+    return null;
   } catch (e) {
     return null;
   }
