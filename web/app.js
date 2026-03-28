@@ -799,27 +799,64 @@ function openHelp() { document.getElementById('help-modal').classList.remove('hi
 function closeHelp() { document.getElementById('help-modal').classList.add('hidden'); }
 
 // ── AUTH MODAL ──
-let authMode = 'login';
+let authMode = 'magic'; // default to magic link (passwordless)
 function handleAccountClick() {
   if (isLoggedIn()) { signOut(); }
-  else { document.getElementById('auth-modal').classList.remove('hidden'); }
+  else { document.getElementById('auth-modal').classList.remove('hidden'); switchAuthTab('magic'); }
 }
 function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); }
 function switchAuthTab(mode, btn) {
   authMode = mode;
   document.querySelectorAll('.auth-tabs button').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('auth-name').style.display = mode === 'signup' ? '' : 'none';
-  document.getElementById('auth-modal-title').textContent = mode === 'signup' ? 'Create Account' : 'Sign In';
-  document.querySelector('#auth-form .btn-primary').textContent = mode === 'signup' ? 'Create Account' : 'Sign In';
+  if (btn) btn.classList.add('active');
+
+  const nameEl = document.getElementById('auth-name');
+  const passEl = document.getElementById('auth-password');
+  const titleEl = document.getElementById('auth-modal-title');
+  const submitEl = document.querySelector('#auth-form .btn-primary');
+  const passToggle = document.getElementById('auth-password-toggle');
+
+  if (mode === 'magic') {
+    if (nameEl) nameEl.style.display = 'none';
+    if (passEl) passEl.style.display = 'none';
+    if (passToggle) passToggle.style.display = 'block';
+    if (titleEl) titleEl.textContent = 'Sign in with email';
+    if (submitEl) submitEl.textContent = 'Send me a sign-in link';
+  } else if (mode === 'password') {
+    if (nameEl) nameEl.style.display = 'none';
+    if (passEl) passEl.style.display = '';
+    if (passToggle) passToggle.style.display = 'none';
+    if (titleEl) titleEl.textContent = 'Sign in with password';
+    if (submitEl) submitEl.textContent = 'Sign In';
+  } else if (mode === 'signup') {
+    if (nameEl) nameEl.style.display = '';
+    if (passEl) passEl.style.display = '';
+    if (passToggle) passToggle.style.display = 'none';
+    if (titleEl) titleEl.textContent = 'Create Account';
+    if (submitEl) submitEl.textContent = 'Create Account';
+  }
 }
 async function handleAuth() {
   const email = document.getElementById('auth-email').value.trim();
+  if (!email) { showToast('⚠️ Please enter your email.'); return; }
+
+  if (authMode === 'magic') {
+    // Passwordless magic link — primary flow
+    const { error } = await signInWithMagicLink(email);
+    if (error) {
+      showToast('⚠️ ' + error.message, 4000);
+    } else {
+      closeAuthModal();
+      showToast('📧 Check your inbox — click the link to sign in. No password needed!', 6000);
+    }
+    return;
+  }
+
   const password = document.getElementById('auth-password').value;
-  if (!email || !password) { showToast('⚠️ Please fill in all fields.'); return; }
+  if (!password) { showToast('⚠️ Please enter your password.'); return; }
   let result;
   if (authMode === 'signup') {
-    const name = document.getElementById('auth-name').value.trim();
+    const name = document.getElementById('auth-name')?.value?.trim();
     result = await signUp(email, password, name);
   } else {
     result = await signIn(email, password);
@@ -854,16 +891,29 @@ function showSoftLeadPrompt() {
   if (typeof wrTrack === 'function') wrTrack('soft_lead_shown', {});
 }
 
-function submitSoftLead() {
+async function submitSoftLead() {
   const email = document.getElementById('soft-lead-email')?.value?.trim();
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     document.getElementById('soft-lead-email')?.focus();
     return;
   }
+  // Store locally immediately (so progress saves even before they click the link)
   activateEmailTrial('Reader', email);
   document.getElementById('soft-lead-prompt')?.remove();
+
+  // Send magic link — creates account + authenticates on click, no password needed
+  if (typeof signInWithMagicLink === 'function') {
+    const { error } = await signInWithMagicLink(email);
+    if (!error) {
+      showToast(`✅ Check your inbox — click the link to sync across all your devices.`, 6000);
+    } else {
+      showToast(`✅ Saved locally! Create an account later to sync across devices.`, 4000);
+    }
+  } else {
+    showToast(`✅ Saved! Your progress will sync across devices.`, 4000);
+  }
+
   updateTrialBanner();
-  showToast(`✅ Saved! Your progress will sync across devices.`, 4000);
   if (typeof wrTrack === 'function') wrTrack('soft_lead_submitted', { source: 'post_upload' });
 }
 
@@ -2512,7 +2562,7 @@ async function _linkStripeToAccount(sessionId, email) {
   }
 }
 
-// ── Upgrade success modal (prompts account creation for new buyers) ──
+// ── Upgrade success modal (prompts account linking for new buyers) ──
 function _showUpgradeSuccessModal(sessionId) {
   const existing = document.getElementById('upgrade-success-modal');
   if (existing) existing.remove();
@@ -2525,18 +2575,17 @@ function _showUpgradeSuccessModal(sessionId) {
       <div style="font-size:2.5rem;margin-bottom:8px">🎉</div>
       <h2 style="font-size:1.4rem;font-weight:800;margin-bottom:8px">Payment confirmed!</h2>
       <p style="color:var(--text-muted);font-size:.95rem;margin-bottom:20px">
-        Create a free account to save your progress, sync your library across devices, and track your WPM over time.
+        Enter your email to sync your Pro access, reading progress, and library across all your devices.
       </p>
       <input type="email" id="upgrade-email" placeholder="your@email.com" autocomplete="email"
-        style="width:100%;box-sizing:border-box;background:var(--bg-elevated,#111);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-size:1rem;margin-bottom:8px">
-      <input type="password" id="upgrade-password" placeholder="Create a password (8+ chars)"
         style="width:100%;box-sizing:border-box;background:var(--bg-elevated,#111);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-size:1rem;margin-bottom:12px">
       <button onclick="_submitUpgradeSignup('${sessionId}')" style="width:100%;background:var(--accent);color:#000;border:none;border-radius:10px;padding:13px;font-weight:800;font-size:1rem;cursor:pointer">
-        Create Account & Activate Pro →
+        Send sign-in link & activate Pro →
       </button>
+      <p style="font-size:.75rem;color:var(--text-muted);margin-top:8px">No password needed — we'll email you a sign-in link.</p>
       <button onclick="document.getElementById('upgrade-success-modal').remove()"
-        style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.85rem;margin-top:12px;display:block;width:100%">
-        Skip for now (you can create an account later)
+        style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.85rem;margin-top:8px;display:block;width:100%">
+        Skip for now
       </button>
     </div>
   `;
@@ -2546,25 +2595,26 @@ function _showUpgradeSuccessModal(sessionId) {
 
 async function _submitUpgradeSignup(sessionId) {
   const email = document.getElementById('upgrade-email')?.value?.trim();
-  const password = document.getElementById('upgrade-password')?.value;
-  if (!email || !password || password.length < 8) {
-    showToast('Please enter a valid email and password (8+ characters)');
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('Please enter a valid email address');
     return;
   }
   try {
-    const result = await signUp(email, password);
-    if (result?.error) {
-      // Maybe they already have an account — try login
-      const loginResult = await signIn(email, password);
-      if (loginResult?.error) {
-        showToast('Could not create account: ' + (result.error.message || 'unknown error'));
+    // Send magic link — no password needed
+    if (typeof signInWithMagicLink === 'function') {
+      const { error } = await signInWithMagicLink(email);
+      if (error) {
+        showToast('⚠️ ' + error.message, 4000);
         return;
       }
     }
+    // Store the email + session locally for linking when they click the magic link
+    localStorage.setItem('wr_pending_stripe_session', sessionId);
+    localStorage.setItem('wr_pending_stripe_email', email);
+    activateEmailTrial('Reader', email);
     document.getElementById('upgrade-success-modal')?.remove();
-    await _linkStripeToAccount(sessionId, email);
-    showToast('✅ Account created and Pro activated! Welcome to WarpReader Pro.', 5000);
+    showToast('📧 Check your inbox — click the link to activate Pro on all your devices!', 6000);
   } catch (e) {
-    showToast('Signup failed — please try again');
+    showToast('Something went wrong — please try again');
   }
 }

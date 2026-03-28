@@ -35,6 +35,17 @@ function handleAuthChange(event, session) {
   if (event === 'SIGNED_IN' && session) {
     currentUser = session.user;
     fetchUserProfile();
+    // Sync all local reading data to cloud on sign-in
+    syncLocalDataToCloud();
+    // Check for pending Stripe session to link (from post-checkout magic link flow)
+    const pendingSession = localStorage.getItem('wr_pending_stripe_session');
+    const pendingEmail = localStorage.getItem('wr_pending_stripe_email');
+    if (pendingSession && typeof _linkStripeToAccount === 'function') {
+      _linkStripeToAccount(pendingSession, pendingEmail || session.user.email);
+      localStorage.removeItem('wr_pending_stripe_session');
+      localStorage.removeItem('wr_pending_stripe_email');
+      if (typeof showToast === 'function') showToast('🎉 Pro activated! Your account is fully set up.', 5000);
+    }
     // Redirect to app only if on landing page after OAuth callback
     const isLanding = window.location.pathname === '/' ||
                       window.location.pathname.endsWith('index.html');
@@ -74,7 +85,22 @@ async function fetchUserProfile() {
   }
 }
 
-// ── Email/Password Sign Up ──
+// ── Magic Link (Passwordless) Sign In ──
+// This is the PRIMARY auth method. User enters email → gets a link → fully authenticated.
+// No password ever needed. Works for both new and returning users.
+async function signInWithMagicLink(email) {
+  if (!supabaseClient) return { error: { message: 'Auth not configured' } };
+  const { data, error } = await supabaseClient.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: window.location.origin + '/app.html',
+      data: { display_name: email.split('@')[0] }
+    }
+  });
+  return { data, error };
+}
+
+// ── Email/Password Sign Up (optional — for users who want a password) ──
 async function signUp(email, password, displayName) {
   if (!supabaseClient) return { error: { message: 'Auth not configured' } };
   const { data, error } = await supabaseClient.auth.signUp({
@@ -90,6 +116,59 @@ async function signIn(email, password) {
   if (!supabaseClient) return { error: { message: 'Auth not configured' } };
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
   return { data, error };
+}
+
+// ── Sync local data to Supabase after auth ──
+// Called after magic link or any sign-in to push localStorage reading data to cloud
+async function syncLocalDataToCloud() {
+  if (!supabaseClient || !currentUser) return;
+  try {
+    // Sync preferred WPM
+    const prefWpm = parseInt(localStorage.getItem('speedread_preferred_wpm'), 10);
+    if (prefWpm >= 100 && prefWpm <= 1500) {
+      await supabaseClient.from('profiles').upsert({
+        id: currentUser.id,
+        preferred_wpm: prefWpm,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+    }
+
+    // Sync reading progress for current document
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('speedread_progress_'));
+    for (const key of keys) {
+      try {
+        const progress = JSON.parse(localStorage.getItem(key));
+        if (!progress) continue;
+        const docName = key.replace('speedread_progress_', '').replace(/_\d+$/, '');
+        await supabaseClient.from('reading_sessions').upsert({
+          user_id: currentUser.id,
+          doc_title: docName,
+          word_index: progress.wordIdx,
+          wpm: progress.wpm,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id, doc_title', ignoreDuplicates: false });
+      } catch (_) {}
+    }
+
+    // Sync reading session history
+    const sessions = JSON.parse(localStorage.getItem('speedread_sessions') || '[]');
+    for (const s of sessions.slice(-20)) { // last 20
+      try {
+        await supabaseClient.from('reading_sessions').insert({
+          user_id: currentUser.id,
+          doc_title: s.doc_title,
+          wpm: s.wpm,
+          word_count: s.word_count,
+          duration: s.duration,
+          date: s.date,
+        });
+      } catch (_) {} // ignore dupes
+    }
+
+    console.log('[Warpreader Auth] Local data synced to cloud');
+  } catch (e) {
+    console.warn('[Warpreader Auth] Sync failed:', e);
+  }
 }
 
 // ── Google OAuth ──

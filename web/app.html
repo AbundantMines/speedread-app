@@ -633,16 +633,16 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 <!-- AUTH MODAL -->
 <div class="modal-overlay hidden" id="auth-modal">
   <div class="modal" style="max-width:400px">
-    <h2 id="auth-modal-title">Sign In</h2>
-    <div class="auth-tabs">
-      <button class="active" onclick="switchAuthTab('login',this)">Sign In</button>
-      <button onclick="switchAuthTab('signup',this)">Sign Up</button>
-    </div>
+    <h2 id="auth-modal-title">Sign in with email</h2>
+    <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:16px">Enter your email — we'll send a sign-in link. No password needed.</p>
     <div class="auth-form" id="auth-form">
       <input type="text" id="auth-name" placeholder="Display name" style="display:none">
-      <input type="email" id="auth-email" placeholder="Email address">
-      <input type="password" id="auth-password" placeholder="Password">
-      <button class="btn btn-primary" style="width:100%" onclick="handleAuth()">Sign In</button>
+      <input type="email" id="auth-email" placeholder="Email address" autocomplete="email">
+      <input type="password" id="auth-password" placeholder="Password" style="display:none" autocomplete="current-password">
+      <button class="btn btn-primary" style="width:100%" onclick="handleAuth()">Send me a sign-in link</button>
+      <div id="auth-password-toggle" style="text-align:center;margin-top:4px">
+        <a href="#" onclick="event.preventDefault();switchAuthTab('password',null)" style="font-size:.8rem;color:var(--text-muted)">I have a password →</a>
+      </div>
     </div>
     <div class="auth-divider">— or —</div>
     <button class="btn-google" onclick="signInWithGoogle()">
