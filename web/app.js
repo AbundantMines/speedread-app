@@ -965,7 +965,7 @@ function updateTrialBanner() {
 }
 
 // ── FEEDBACK ──
-const FEEDBACK_ENDPOINT = null; // set to your endpoint when ready (same as LEAD_ENDPOINT)
+const FEEDBACK_ENDPOINT = '/api/feedback';
 let _feedbackCat    = 'bug';
 let _feedbackRating = 0;
 
@@ -1018,7 +1018,8 @@ function submitFeedback() {
     category: _feedbackCat,
     rating:   _feedbackRating || null,
     text,
-    email:    document.getElementById('feedback-email').value.trim() || null,
+    email:    document.getElementById('feedback-email').value.trim() || (typeof getUserEmail === 'function' ? getUserEmail() : null) || null,
+    user_id:  (typeof currentUser !== 'undefined' && currentUser?.id) || null,
     wpm:      wpm || null,
     doc:      document.getElementById('book-title-text')?.textContent || null,
     ts:       new Date().toISOString(),
