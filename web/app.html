@@ -354,10 +354,11 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
   }
   .sidebar.open { left: 0; }
   .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
-  .word-row { font-size: 48px; }
-  .word-before, .word-after { min-width: 120px; }
-  .rsvp-window { height: 76px; }
+  .word-row { font-size: 36px; }
+  .word-before, .word-after { min-width: 80px; }
+  .rsvp-window { height: 64px; }
   .play-btn { min-width: 120px; font-size: 15px; padding: 14px 20px; min-height: 50px; }
+  .size-row .btn-sm { display: inline-flex !important; } /* override the mobile hide rule */
   .topbar { flex-wrap: nowrap; padding: 8px 12px; gap: 8px; }
   .topbar-actions { flex-wrap: nowrap; gap: 6px; flex-shrink: 0; }
   .topbar-title { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
@@ -374,9 +375,9 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
   #quickstart div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 390px) {
-  .word-row { font-size: 40px; }
-  .word-before, .word-after { min-width: 100px; }
-  .rsvp-window { height: 68px; }
+  .word-row { font-size: 32px; }
+  .word-before, .word-after { min-width: 70px; }
+  .rsvp-window { height: 56px; }
 }
 /* Mobile resume banner */
 .mobile-resume-banner {
@@ -570,6 +571,14 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
           <button class="btn btn-catchup" onclick="catchMeUp(60)">↩ Last 60s</button>
           <span style="font-size:11px;color:var(--text-muted);margin-left:4px">Catch me up</span>
         </div>
+      </div>
+
+      <!-- Text size (visible on mobile, complements topbar controls on desktop) -->
+      <div class="size-row" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:11px;color:var(--text-muted)">Text</span>
+        <button class="btn btn-sm" onclick="setFontSize('S')" id="m-size-S" style="font-size:13px;padding:5px 10px">A</button>
+        <button class="btn btn-sm" onclick="setFontSize('M')" id="m-size-M" style="font-size:16px;padding:5px 10px;font-weight:700">A</button>
+        <button class="btn btn-sm" onclick="setFontSize('L')" id="m-size-L" style="font-size:20px;padding:5px 10px;font-weight:700">A</button>
       </div>
 
       <div class="wpm-section">
