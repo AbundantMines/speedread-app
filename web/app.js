@@ -1701,22 +1701,39 @@ function buildFallbackSummary(cleanText, seconds) {
 
 async function catchMeUp(seconds = 30) {
   if (state === 'playing') pause();
+
+  let rawWords = '';
+
+  // First try: recent session buffer (words read in this session)
   const cutoff = Date.now() - seconds * 1000;
-  const rawWords = wordBuffer
+  const buffered = wordBuffer
     .filter(e => e.timestamp >= cutoff)
     .map(e => e.word)
     .join(' ');
+
+  if (buffered.split(' ').length >= 10) {
+    rawWords = buffered;
+  } else if (words.length > 0 && currentIdx > 0) {
+    // Fallback: grab the last N words before current position
+    // Use estimated word count based on WPM and seconds
+    const wordCount = Math.min(Math.round((wpm / 60) * (seconds === 30 ? 60 : 120)), currentIdx);
+    const startIdx = Math.max(0, currentIdx - wordCount);
+    rawWords = words.slice(startIdx, currentIdx).join(' ');
+  }
+
   if (rawWords.split(' ').length < 10) {
-    showToast('Not enough text to summarize yet');
+    showToast('Move forward in the text first — nothing to recap yet');
     return;
   }
+
   const cleanText = cleanExtractedText(rawWords);
-  showCatchUpModal('loading', seconds);
+  const label = buffered.split(' ').length >= 10 ? seconds : 'recap';
+  showCatchUpModal('loading', label);
   try {
     const summary = await getSummary(cleanText, seconds);
-    showCatchUpModal('result', seconds, summary);
+    showCatchUpModal('result', label, summary);
   } catch (e) {
-    showCatchUpModal('result', seconds, buildFallbackSummary(cleanText, seconds));
+    showCatchUpModal('result', label, buildFallbackSummary(cleanText, seconds));
   }
 }
 
@@ -1757,7 +1774,7 @@ function showCatchUpModal(modalState, seconds, content = '') {
   const loading = document.getElementById('catchup-loading');
   const result = document.getElementById('catchup-result');
   const title = document.getElementById('catchup-title');
-  title.textContent = `What you just read${seconds === 30 ? ' (30s)' : ' (60s)'}`;
+  title.textContent = seconds === 'recap' ? 'Where you left off' : `What you just read (${seconds}s)`;
   modal.classList.remove('hidden');
   if (modalState === 'loading') {
     loading.style.display = 'flex';
