@@ -4,11 +4,75 @@
 <script>if(location.hostname==="swiftread.app")location.replace("https://warpreader.com"+location.pathname+location.search+location.hash);</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>What's Your Reading Speed? Free WPM Test — WarpReader</title>
-  <meta name="description" content="Take the free 60-second reading speed test. Find out your WPM, see how you rank against other readers, and get your personalized plan to 3× your speed.">
-  <meta property="og:title" content="What's Your Reading Speed? Free WPM Test">
-  <meta property="og:description" content="60-second test. Find your WPM. Get your personalized speed reading plan.">
-  <meta property="og:image" content="/og-image.svg">
+  <title>Free Reading Speed Test — How Fast Can You Read? | Warpreader</title>
+  <meta name="description" content="Take Warpreader's free 60-second reading speed test. Discover your WPM, see how you rank against 2,400+ readers, and get a personalized 28-day plan to 3× your speed — no signup required.">
+  <link rel="canonical" href="https://warpreader.com/test.html">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Free Reading Speed Test — How Fast Can You Read? | Warpreader">
+  <meta property="og:description" content="60-second test. Find your exact WPM. See where you rank against 2,400+ readers. Get a free personalized speed-reading plan.">
+  <meta property="og:image" content="https://warpreader.com/og-image.png">
+  <meta property="og:url" content="https://warpreader.com/test.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Warpreader">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Free Reading Speed Test — How Fast Can You Read? | Warpreader">
+  <meta name="twitter:description" content="60-second test. Find your exact WPM. See where you rank against 2,400+ readers.">
+  <meta name="twitter:image" content="https://warpreader.com/og-image.png">
+  <meta name="twitter:site" content="@warpreader">
+
+  <!-- FAQPage JSON-LD Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is the average reading speed?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The average adult reads approximately 238 words per minute (WPM). Most people read at the same pace they learned as a child — between 200–250 WPM. With training using RSVP speed reading techniques, most readers can reach 400–600 WPM within 30 days."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does this reading speed test work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The test shows you a 150-word passage. You read it at your natural pace and click Done when finished. We calculate your WPM (words per minute) by dividing the word count by your reading time, then show you how you compare to other readers and what speed you could reach with training."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I actually triple my reading speed?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — and it's backed by cognitive science. RSVP (Rapid Serial Visual Presentation) eliminates inefficient eye movement, the main bottleneck in traditional reading. Most Warpreader users go from 238 WPM to 400–600 WPM within 30 days of 10-minute daily practice. The 28-day training course is designed to build this systematically."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Will I retain what I read at higher speeds?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "This is the key question — and it's why Warpreader includes AI comprehension testing after every session. Most users maintain 80%+ comprehension at 2× their starting speed. The app tracks your speed and comprehension together so you always know your optimal reading pace."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is the reading speed test free?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, completely free. No account required. After completing the test, you'll see your WPM, your percentile rank among all readers, and a personalized projection of where you could be in 30 days with training. You can also start the free 7-day trial of Warpreader Pro directly from your results."
+        }
+      }
+    ]
+  }
+  </script>
+
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
   <style>
@@ -429,6 +493,12 @@
   (function() {
     var p = new URLSearchParams(window.location.search);
     if (typeof wrTrack === 'function') wrTrack('page_view', { page: '/test', utm_source: p.get('utm_source'), utm_campaign: p.get('utm_campaign') });
+    // Track referral_landed if arrived via referral link
+    var ref = p.get('ref');
+    if (ref) {
+      sessionStorage.setItem('wr_ref', ref);
+      if (typeof wrTrack === 'function') wrTrack('referral_landed', { referrer_id: ref });
+    }
   })();
 </script>
 

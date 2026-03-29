@@ -669,12 +669,18 @@ function processText(text) {
   // Save document text to cloud (for cross-device resume)
   _saveDocToCloud(words.join(' '));
 
-  // Soft email capture — show 3s after file load, only once per session
+  // Soft email capture — A/B test:
+  //   Variant A (30% of users): show at 3s after upload (original)
+  //   Variant B (70% of users): show at 30s after reading starts (new)
   if (!isPro() && !hasSubmittedLead() && !sessionStorage.getItem('lead_prompt_shown')) {
     sessionStorage.setItem('lead_prompt_shown', '1');
+    const abVariant = (Math.random() < 0.3) ? 'A_3s' : 'B_30s';
+    sessionStorage.setItem('lead_ab_variant', abVariant);
+    if (typeof wrTrack === 'function') wrTrack('soft_lead_ab_assigned', { variant: abVariant });
+    const delay = abVariant === 'A_3s' ? 3000 : 30000;
     setTimeout(() => {
       if (!hasSubmittedLead()) showSoftLeadPrompt();
-    }, 3000);
+    }, delay);
   }
 
   const saved = loadProgress();
@@ -851,6 +857,8 @@ async function handleAuth() {
     } else {
       closeAuthModal();
       showToast('📧 Check your inbox — click the link to sign in. No password needed!', 6000);
+      // Track magic link sent
+      if (typeof wrTrack === 'function') wrTrack('auth_magic_link_sent', { email });
     }
     return;
   }
@@ -870,29 +878,61 @@ async function handleAuth() {
 
 // ── UPGRADE MODAL ──
 // ── LEAD CAPTURE (app) ──
-// ── SOFT LEAD PROMPT (fires 3s after first file upload) ──
+// ── SOFT LEAD PROMPT (A/B tested: 3s post-upload vs 30s into reading) ──
 function showSoftLeadPrompt() {
   // Show as a toast-style banner, not a blocking modal
   const existing = document.getElementById('soft-lead-prompt');
   if (existing) return;
+
+  // Build dynamic headline based on current WPM (if reading has started)
+  const currentWpm = typeof wpm !== 'undefined' ? wpm : 0;
+  const wordsRead = typeof sessionWordsRead !== 'undefined' ? sessionWordsRead : 0;
+  let headline, subline;
+  const variant = sessionStorage.getItem('lead_ab_variant') || 'A_3s';
+
+  if (variant === 'B_30s' && currentWpm > 100 && wordsRead > 50) {
+    headline = `Your reading speed just hit ${currentWpm} WPM — save your progress?`;
+    subline = 'Drop your email to track your progress and sync across devices.';
+  } else {
+    headline = '💾 Save your reading progress';
+    subline = 'Enter email to sync your position across devices';
+  }
+
   const div = document.createElement('div');
   div.id = 'soft-lead-prompt';
-  div.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:16px 20px;box-shadow:0 4px 24px rgba(0,0,0,.4);z-index:2000;display:flex;align-items:center;gap:14px;max-width:460px;width:calc(100% - 40px);animation:slideUp .4s ease';
+  div.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--border-strong);border-radius:14px;padding:16px 20px;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:2000;display:flex;align-items:center;gap:14px;max-width:480px;width:calc(100% - 40px);animation:slideUp .4s ease';
   div.innerHTML = `
     <div style="flex:1">
-      <div style="font-weight:700;font-size:.95rem;margin-bottom:3px">💾 Save your reading progress</div>
-      <div style="font-size:.82rem;color:var(--text-muted)">Enter email to sync your position across devices</div>
+      <div style="font-weight:700;font-size:.95rem;margin-bottom:3px">${headline}</div>
+      <div style="font-size:.82rem;color:var(--text-muted)">${subline}</div>
       <div style="display:flex;gap:8px;margin-top:8px">
         <input type="email" id="soft-lead-email" placeholder="your@email.com" autocomplete="email"
           style="flex:1;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:.85rem">
-        <button onclick="submitSoftLead()" style="background:var(--accent);color:#000;border:none;border-radius:8px;padding:7px 14px;font-weight:700;cursor:pointer;font-size:.85rem">Save</button>
+        <button onclick="submitSoftLead()" style="background:var(--accent);color:#000;border:none;border-radius:8px;padding:7px 14px;font-weight:700;cursor:pointer;font-size:.85rem">Save →</button>
       </div>
     </div>
     <button onclick="document.getElementById('soft-lead-prompt').remove()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:4px;flex-shrink:0" title="Dismiss">✕</button>
   `;
   document.body.appendChild(div);
-  if (typeof wrTrack === 'function') wrTrack('soft_lead_shown', {});
+  if (typeof wrTrack === 'function') wrTrack('soft_lead_shown', { variant, wpm: currentWpm });
 }
+
+// ── EXIT INTENT (desktop: mouseleave on document) ──
+(function initExitIntent() {
+  let exitShown = false;
+  document.addEventListener('mouseleave', function(e) {
+    if (exitShown) return;
+    if (e.clientY > 10) return; // only top of page = real exit intent
+    if (typeof isPro === 'function' && isPro()) return;
+    if (typeof hasSubmittedLead === 'function' && hasSubmittedLead()) return;
+    // Only show if user has actually loaded content
+    const hasContent = typeof words !== 'undefined' && words.length > 0;
+    if (!hasContent) return;
+    exitShown = true;
+    showSoftLeadPrompt();
+    if (typeof wrTrack === 'function') wrTrack('exit_intent_triggered', { wpm: typeof wpm !== 'undefined' ? wpm : 0 });
+  });
+})();
 
 async function submitSoftLead() {
   const email = document.getElementById('soft-lead-email')?.value?.trim();
@@ -1277,6 +1317,7 @@ async function _resumeFromBanner(saved) {
       displayWord(words[currentIdx]);
       updateProgress();
       showToast(`📖 Resumed "${title}" from word ${(currentIdx + 1).toLocaleString()}`, 3000);
+      if (typeof wrTrack === 'function') wrTrack('resume_from_cloud', { title });
       return;
     }
   }
@@ -1340,6 +1381,7 @@ async function _saveDocToCloud(textContent) {
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id, title' });
       console.log(`[Warpreader] Saved "${title}" to cloud (${(textSize/1024).toFixed(0)}KB)`);
+      if (typeof wrTrack === 'function') wrTrack('doc_saved_to_cloud', { title, size_kb: Math.round(textSize/1024) });
     } else {
       // Large file — store metadata + chunks
       const { data: doc } = await supabaseClient.from('documents').upsert({
@@ -1419,8 +1461,10 @@ async function _flushSyncQueue() {
     }
   }
   _saveSyncQueue(remaining);
-  if (q.length > remaining.length) {
-    console.log(`[Warpreader] Synced ${q.length - remaining.length} queued position updates`);
+  const flushed = q.length - remaining.length;
+  if (flushed > 0) {
+    console.log(`[Warpreader] Synced ${flushed} queued position updates`);
+    if (typeof wrTrack === 'function') wrTrack('offline_sync_flushed', { count: flushed });
   }
 }
 

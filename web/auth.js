@@ -35,6 +35,17 @@ function handleAuthChange(event, session) {
   if (event === 'SIGNED_IN' && session) {
     currentUser = session.user;
     fetchUserProfile();
+    // ── Conversion tracking ──
+    if (typeof wrTrack === 'function') {
+      wrTrack('auth_signed_in', { method: 'magic_link', email: session.user.email });
+    }
+    // ── Record referral if arrived via referral link ──
+    if (typeof window._recordPendingReferral === 'function' && session.user.email) {
+      window._recordPendingReferral(session.user.email);
+    }
+    // ── Show referral button ──
+    const refBtn = document.getElementById('referral-sidebar-btn');
+    if (refBtn) refBtn.style.display = 'block';
     // Sync all local reading data to cloud on sign-in
     syncLocalDataToCloud();
     // Check for pending Stripe session to link (from post-checkout magic link flow)

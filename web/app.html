@@ -450,6 +450,17 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
     <button class="btn" style="width:100%;margin-top:8px;font-size:12px" onclick="loadLibraryPage()">Browse all classics →</button>
   </div>
 
+  <!-- REFERRAL BUTTON -->
+  <div id="referral-sidebar-btn" style="display:none;padding:0 20px 12px">
+    <button onclick="openReferralModal()" style="width:100%;padding:10px 14px;background:linear-gradient(135deg,rgba(56,189,248,.18),rgba(56,189,248,.08));border:1px solid rgba(56,189,248,.35);border-radius:10px;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;transition:border-color .15s,background .15s">
+      <span style="font-size:16px">🎁</span>
+      <div>
+        <div>Share &amp; Get 7 Free Days</div>
+        <div id="referral-count-label" style="font-size:10px;font-weight:400;color:rgba(56,189,248,.7);margin-top:1px">Invite friends · both get 7 days</div>
+      </div>
+    </button>
+  </div>
+
   <div class="trial-banner" id="trial-banner"></div>
   <div class="sidebar-account" id="account-section">
     <div class="account-avatar" id="account-avatar">?</div>
@@ -969,6 +980,56 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
   </div>
 </div>
 
+<!-- REFERRAL MODAL -->
+<div class="modal-overlay hidden" id="referral-modal" onclick="if(event.target===this)closeReferralModal()">
+  <div class="modal-card" style="width:min(480px,95vw);background:var(--bg-card);border-radius:var(--radius-lg);padding:28px;border:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h2 style="font-size:19px;font-weight:800;margin:0">🎁 Share &amp; Get 7 Free Days</h2>
+      <button onclick="closeReferralModal()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;line-height:1.55">
+      Share your referral link. When a friend signs up and starts reading, <strong style="color:var(--text)">you both get 7 free days</strong> — automatically.
+    </p>
+
+    <!-- Stats row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+      <div style="background:var(--bg-elevated);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:2rem;font-weight:800;color:var(--accent)" id="referral-modal-count">0</div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-top:2px">Friends Referred</div>
+      </div>
+      <div style="background:var(--bg-elevated);border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:2rem;font-weight:800;color:var(--accent)" id="referral-modal-days">0</div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-top:2px">Days Earned</div>
+      </div>
+    </div>
+
+    <!-- Referral link -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:6px">Your Referral Link</div>
+      <div style="display:flex;gap:8px;align-items:stretch">
+        <input id="referral-link-input" type="text" readonly
+          style="flex:1;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--accent);font-size:12px;font-family:monospace;cursor:text"
+          value="Loading…">
+        <button onclick="copyReferralLink()" id="referral-copy-btn"
+          style="padding:10px 16px;background:var(--accent);border:none;border-radius:8px;color:#000;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;flex-shrink:0">
+          Copy
+        </button>
+      </div>
+      <div id="referral-copy-confirm" style="font-size:12px;color:var(--accent);margin-top:6px;min-height:18px"></div>
+    </div>
+
+    <!-- Share buttons -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <button onclick="shareReferralTwitter()" style="flex:1;min-width:100px;padding:9px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;cursor:pointer">𝕏 Tweet</button>
+      <button onclick="shareReferralNative()" id="referral-native-share" style="display:none;flex:1;min-width:100px;padding:9px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;cursor:pointer">📤 Share</button>
+    </div>
+
+    <p style="font-size:11px;color:var(--text-muted);text-align:center;margin:0">
+      Both you and your friend get 7 free days when they activate their account.
+    </p>
+  </div>
+</div>
+
 <!-- Scripts -->
 <script src="analytics.js"></script>
 <script src="epub.js"></script>
@@ -1035,6 +1096,183 @@ if ('serviceWorker' in navigator) {
     });
   }).catch(() => {});
 }
+</script>
+<script>
+// ═══════════════════════════════════════════════════════
+// REFERRAL SYSTEM
+// ═══════════════════════════════════════════════════════
+
+(function() {
+  'use strict';
+
+  // ── Check if arrived via referral link ──
+  (function checkReferralLanding() {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (!ref) return;
+    // Store referrer ID for use after sign-in
+    sessionStorage.setItem('wr_ref', ref);
+    // Fire analytics
+    if (typeof wrTrack === 'function') {
+      wrTrack('referral_landed', { referrer_id: ref });
+    }
+    // Clean ref from URL without reload
+    const cleanUrl = window.location.pathname + window.location.hash;
+    history.replaceState(null, '', cleanUrl);
+  })();
+
+  // ── Build referral link for current user ──
+  window.getReferralLink = function() {
+    const userId = (typeof currentUser !== 'undefined' && currentUser)
+      ? (currentUser.id || currentUser.email || '')
+      : '';
+    const id = userId ? btoa(userId).replace(/=/g, '').slice(0, 16) : 'guest';
+    return window.location.origin + '/app.html?ref=' + id;
+  };
+
+  // ── Open referral modal ──
+  window.openReferralModal = async function() {
+    const modal = document.getElementById('referral-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+
+    // Set link
+    const link = getReferralLink();
+    const input = document.getElementById('referral-link-input');
+    if (input) input.value = link;
+
+    // Show native share if available
+    const nativeBtn = document.getElementById('referral-native-share');
+    if (nativeBtn && navigator.share) nativeBtn.style.display = '';
+
+    // Load stats
+    if (typeof currentUser !== 'undefined' && currentUser && currentUser.email) {
+      try {
+        const resp = await fetch('/api/referral?referrer_email=' + encodeURIComponent(currentUser.email));
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.ok) {
+            const countEl = document.getElementById('referral-modal-count');
+            const daysEl = document.getElementById('referral-modal-days');
+            const labelEl = document.getElementById('referral-count-label');
+            if (countEl) countEl.textContent = data.total_referrals;
+            if (daysEl) daysEl.textContent = data.days_earned;
+            if (labelEl) labelEl.textContent = data.total_referrals + ' referred · ' + data.days_earned + ' days earned';
+          }
+        }
+      } catch (e) {}
+    }
+  };
+
+  window.closeReferralModal = function() {
+    const modal = document.getElementById('referral-modal');
+    if (modal) modal.classList.add('hidden');
+  };
+
+  // ── Copy referral link ──
+  window.copyReferralLink = function() {
+    const input = document.getElementById('referral-link-input');
+    const confirm = document.getElementById('referral-copy-confirm');
+    const btn = document.getElementById('referral-copy-btn');
+    if (!input) return;
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(input.value).then(() => {
+        if (btn) btn.textContent = '✓ Copied!';
+        if (confirm) confirm.textContent = '✓ Link copied to clipboard!';
+        setTimeout(() => {
+          if (btn) btn.textContent = 'Copy';
+          if (confirm) confirm.textContent = '';
+        }, 2500);
+      }).catch(() => _fallbackCopy(input));
+    } else {
+      _fallbackCopy(input);
+    }
+
+    // Track event
+    if (typeof wrTrack === 'function') {
+      wrTrack('referral_shared', { method: 'copy' });
+    }
+  };
+
+  function _fallbackCopy(input) {
+    input.select();
+    try {
+      document.execCommand('copy');
+      const confirm = document.getElementById('referral-copy-confirm');
+      if (confirm) confirm.textContent = '✓ Link copied!';
+      setTimeout(() => { if (confirm) confirm.textContent = ''; }, 2500);
+    } catch {}
+  }
+
+  // ── Share via Twitter/X ──
+  window.shareReferralTwitter = function() {
+    const link = getReferralLink();
+    const text = encodeURIComponent('I\'ve been reading 3× faster with Warpreader 🚀 Use my link and we both get 7 free days:');
+    const url = encodeURIComponent(link);
+    window.open('https://twitter.com/intent/tweet?text=' + text + '%20' + url, '_blank');
+    if (typeof wrTrack === 'function') wrTrack('referral_shared', { method: 'twitter' });
+  };
+
+  // ── Native share ──
+  window.shareReferralNative = function() {
+    const link = getReferralLink();
+    if (navigator.share) {
+      navigator.share({
+        title: 'Read 3× faster with Warpreader',
+        text: 'I\'ve been reading 3× faster. Use my referral link and we both get 7 free days:',
+        url: link,
+      }).catch(() => {});
+      if (typeof wrTrack === 'function') wrTrack('referral_shared', { method: 'native' });
+    }
+  };
+
+  // ── Show referral button once user is signed in ──
+  // Called after auth state change (hooked in via DOMContentLoaded)
+  function updateReferralButton() {
+    const btn = document.getElementById('referral-sidebar-btn');
+    if (!btn) return;
+    const isLoggedIn = typeof currentUser !== 'undefined' && currentUser;
+    btn.style.display = isLoggedIn ? 'block' : 'none';
+  }
+
+  // Hook into auth ready — poll until auth module initializes
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(updateReferralButton, 1500);
+    setTimeout(updateReferralButton, 3000);
+
+    // If user arrived via referral link, auto-record when they sign in
+    const pendingRef = sessionStorage.getItem('wr_ref');
+    if (pendingRef) {
+      // Store to handle after sign-in via auth state change
+      window._pendingReferralCode = pendingRef;
+    }
+  });
+
+  // ── Record referral after sign-in ──
+  // Intercept auth SIGNED_IN events to record the referral
+  const _origHandleAuthChange = typeof handleAuthChange !== 'undefined' ? handleAuthChange : null;
+  window._recordPendingReferral = async function(email) {
+    const ref = sessionStorage.getItem('wr_ref') || window._pendingReferralCode;
+    if (!ref || !email) return;
+    try {
+      // We need to decode the ref code to get the referrer email
+      // The ref code is base64(userId) sliced — we call the API with it
+      await fetch('/api/referral', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          referrer_email: ref, // for now stored as-is; server resolves
+          referred_email: email,
+        }),
+      });
+      sessionStorage.removeItem('wr_ref');
+      window._pendingReferralCode = null;
+    } catch {}
+  };
+
+})();
 </script>
 </body>
 </html>
