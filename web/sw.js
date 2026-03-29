@@ -1,5 +1,5 @@
 // Warpreader Service Worker — offline support
-const CACHE_NAME = 'warpreader-v1';
+const CACHE_NAME = 'warpreader-v2';
 const CORE_ASSETS = [
   '/app.html',
   '/app.js',
