@@ -1,5 +1,5 @@
-// Warpreader Service Worker — offline support
-const CACHE_NAME = 'warpreader-v2';
+// Warpreader Service Worker v3 — network-first for JS, cache fallback for offline
+const CACHE_NAME = 'warpreader-v3';
 const CORE_ASSETS = [
   '/app.html',
   '/app.js',
@@ -11,7 +11,7 @@ const CORE_ASSETS = [
   '/analytics.js',
 ];
 
-// Install: cache core app shell
+// Install: cache core assets, activate immediately
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS))
@@ -19,7 +19,7 @@ self.addEventListener('install', (e) => {
   self.skipWaiting();
 });
 
-// Activate: clean old caches
+// Activate: clean old caches, take control immediately
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
@@ -29,29 +29,29 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
-// Fetch: network-first for API calls, cache-first for app shell
+// Fetch: NETWORK-FIRST for everything (use cache only when offline)
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
-  // API calls — always network, never cache
+  // Skip non-GET, API calls, and external requests
+  if (e.request.method !== 'GET') return;
   if (url.pathname.startsWith('/api/')) return;
-
-  // Supabase calls — always network
   if (url.hostname.includes('supabase')) return;
+  if (!url.hostname.includes('warpreader')) return;
 
-  // App shell — cache first, network fallback
   e.respondWith(
-    caches.match(e.request).then((cached) => {
-      const fetchPromise = fetch(e.request).then((response) => {
-        // Update cache with fresh version
+    fetch(e.request)
+      .then((response) => {
+        // Got fresh response — update cache
         if (response.ok) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
         }
         return response;
-      }).catch(() => cached); // network failed, use cache
-
-      return cached || fetchPromise;
-    })
+      })
+      .catch(() => {
+        // Offline — serve from cache
+        return caches.match(e.request);
+      })
   );
 });
