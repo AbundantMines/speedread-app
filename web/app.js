@@ -1059,12 +1059,18 @@ function showUpgradeModal(msg) {
     if (pEl) pEl.textContent = msg;
     if (h2El) h2El.textContent = 'Keep reading — upgrade to Pro';
   } else {
-    // Default: contextual copy based on reading progress
+    // Loss-framed copy based on reading progress (behavioral psychology)
     const pagesRead = Math.ceil((currentIdx || 0) / 250);
-    if (h2El && pagesRead > 2) {
-      h2El.textContent = `You've read ${pagesRead} pages. Don't lose your place.`;
+    const currentWPM = wpm || 300;
+    const booksPerYear = Math.round((currentWPM * 15 * 365) / 75000); // 15 min/day, 75K words/book
+    if (h2El) {
+      if (pagesRead > 5) {
+        h2El.textContent = `You've read ${pagesRead} pages at ${currentWPM} WPM. Don't lose this.`;
+      } else {
+        h2El.textContent = `At ${currentWPM} WPM, you could finish ${booksPerYear} books this year`;
+      }
     }
-    if (pEl) pEl.innerHTML = 'Upgrade to Pro to save every book, track your WPM, and read without limits.<br><small style="color:var(--accent)">📚 Unlimited library · 📈 WPM tracking · 🔁 Never lose your place</small>';
+    if (pEl) pEl.innerHTML = `Without Pro, your reading progress won't sync and you'll lose your place when you close this tab.<br><small style="color:var(--accent)">📚 Unlimited books · ☁️ Cloud sync across devices · 📈 Never lose your progress</small><br><small style="color:var(--text-muted)">$1 today · $3.33/mo after trial · cancel anytime</small>`;
   }
   document.getElementById('upgrade-modal').classList.remove('hidden');
 }
