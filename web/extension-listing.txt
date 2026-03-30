@@ -1,0 +1,35 @@
+=== CHROME WEB STORE LISTING — COPY/PASTE ===
+
+EXTENSION NAME:
+Warpreader — Speed Reading Extension
+
+SHORT DESCRIPTION (132 chars max):
+Speed read any webpage at 300+ WPM using RSVP. Track progress, sync across devices. Free with Pro upgrade available.
+
+DETAILED DESCRIPTION:
+Warpreader brings RSVP (Rapid Serial Visual Presentation) speed reading to every webpage.
+
+⚡ FEATURES:
+• Speed read any webpage — click the icon or right-click selected text
+• Adjustable speed: 100-1500 WPM with smart pausing at punctuation
+• ORP highlighting — the optimal letter in each word is highlighted for faster recognition
+• Full-screen reader mode — distraction-free reading in a dedicated tab
+• Progress tracking — mini sparkline shows your WPM improvement over time
+• Keyboard shortcuts — Space (play/pause), arrows (navigate), up/down (speed)
+• Syncs with warpreader.com — same account, same progress, everywhere
+• Dark theme with gold accents
+
+📖 HOW IT WORKS:
+1. Click the Warpreader icon on any webpage
+2. Text is extracted automatically
+3. Words appear one at a time at your chosen speed
+4. Your brain processes faster without eye movement overhead
+
+🎯 FREE: 3 articles per day
+⚡ PRO: Unlimited reading + cloud sync ($3.33/mo billed annually)
+
+Website: https://warpreader.com
+Privacy Policy: https://warpreader.com/privacy.html
+
+CATEGORY: Productivity
+LANGUAGE: English (United States)
