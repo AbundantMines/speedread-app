@@ -76,18 +76,22 @@ async function openCheckout(plan, knownEmail) {
         plan,
         email: existingEmail,
         userId: (typeof currentUser !== 'undefined' && currentUser?.id) || null,
-        successUrl: window.location.origin + '/app.html?upgraded=true',
-        cancelUrl: window.location.href,
+        // Do NOT append ?upgraded=true here — server appends ?upgraded=true&session_id={CHECKOUT_SESSION_ID}
+        successUrl: window.location.origin + '/app.html',
+        cancelUrl: window.location.origin + '/app.html',
       })
     });
     const session = await response.json();
     if (session.error) throw new Error(session.error);
+    if (!session.url) throw new Error('No checkout URL returned');
     // Use session.url (modern redirect) — more reliable than redirectToCheckout
     window.location.href = session.url;
   } catch (e) {
     console.error('[Warpreader Billing] Checkout error:', e);
-    if (typeof showToast === 'function') showToast('Something went wrong. Please try again.', 4000);
-    else alert('Something went wrong. Please try again.');
+    // Log checkout error to D1 analytics
+    _logCheckoutError(plan, e.message);
+    // Show visible error to user
+    _showCheckoutError(e.message);
   }
 }
 
@@ -131,6 +135,46 @@ function _submitPreCheckout() {
   }
   document.getElementById('pre-checkout-modal')?.remove();
   openCheckout(_pendingCheckoutPlan, email);
+}
+
+// ── Checkout error logging + visible error UI ──
+function _logCheckoutError(plan, errorMsg) {
+  try {
+    fetch('/api/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event: 'checkout_error',
+        page: window.location.pathname,
+        session_id: (() => { let s = sessionStorage.getItem('wr_sid'); if (!s) { s = Math.random().toString(36).slice(2); sessionStorage.setItem('wr_sid', s); } return s; })(),
+        properties: { plan, error: errorMsg, ts: Date.now() }
+      })
+    }).catch(() => {});
+  } catch(_) {}
+}
+
+function _showCheckoutError(errorMsg) {
+  // Remove any existing error
+  const prev = document.getElementById('wr-checkout-error-banner');
+  if (prev) prev.remove();
+
+  const banner = document.createElement('div');
+  banner.id = 'wr-checkout-error-banner';
+  banner.style.cssText = [
+    'position:fixed', 'bottom:24px', 'left:50%', 'transform:translateX(-50%)',
+    'background:#1a1a2e', 'border:1.5px solid #ef4444', 'color:#fca5a5',
+    'border-radius:12px', 'padding:14px 20px', 'z-index:9999',
+    'font-size:.95rem', 'max-width:420px', 'width:calc(100% - 48px)',
+    'display:flex', 'align-items:center', 'gap:12px', 'box-shadow:0 4px 24px rgba(0,0,0,.5)'
+  ].join(';');
+  banner.innerHTML = `
+    <span style="font-size:1.3rem">⚠️</span>
+    <span style="flex:1">Checkout failed: ${errorMsg || 'Something went wrong. Please try again.'}</span>
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:1.1rem;line-height:1;flex-shrink:0">✕</button>
+  `;
+  document.body.appendChild(banner);
+  // Auto-dismiss after 8s
+  setTimeout(() => { if (banner.parentElement) banner.remove(); }, 8000);
 }
 
 // ── Check for successful upgrade ──
