@@ -446,35 +446,39 @@
     }
   }
 
-  function submitCapture(e) {
+  async function submitCapture(e) {
     e.preventDefault();
     const email = document.getElementById('capture-email').value.trim();
     if (!email) return;
 
-    // Store locally
     try { localStorage.setItem('speedread_email', email); } catch(_) {}
-
-    // Fire to analytics
     if (typeof wrTrack === 'function') wrTrack('wpm_test_email_capture', { email, ...getUTMSource() });
 
-    // Send to Supabase saved_documents via existing pattern
-    const SUPABASE_URL = 'https://hmacjbgnvljhgvwdzkds.supabase.co';
-    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtYWNqYmdudmxqaGd2d2R6a2RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MDcwODAsImV4cCI6MjA4OTM4MzA4MH0.crS-Y4zEnCmUPM7DBbJvb5nVufgtbEXyW6WpOSBTl2k';
     const wpmResult = JSON.parse(localStorage.getItem('speedread_wpm_test') || '{}');
-    fetch(`${SUPABASE_URL}/rest/v1/wpm_test_leads`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY, 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ email, wpm: wpmResult.wpm, percentile: wpmResult.pct, utm_source: getUTMSource().source, utm_campaign: getUTMSource().campaign, created_at: new Date().toISOString() })
-    }).catch(() => {}); // fail silently if table doesn't exist yet
+
+    // Save to D1 + trigger value-forward nurture sequence (5-email drip)
+    try {
+      await fetch('/api/save-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          plan: 'pro_annual',
+          source: 'wpm_test',
+          wpm: wpmResult.wpm || null,
+        }),
+      });
+    } catch (_) {}
 
     document.getElementById('capture-form-wrap').style.display = 'none';
     document.getElementById('capture-success').style.display = 'block';
+    document.getElementById('capture-success').innerHTML = '✅ Check your inbox — I sent you your personalized 28-day plan. Redirecting to checkout…';
 
-    // After capturing email, auto-open checkout (hot moment — they just confirmed intent)
+    // Hot moment — they just gave email + saw their result. Open checkout.
     localStorage.setItem('wr_lead_email', email);
     setTimeout(() => {
       if (typeof openCheckout === 'function') openCheckout('pro_annual', email);
-    }, 1200); // short delay so they see the success state first
+    }, 1800);
   }
 
   function retakeTest() {

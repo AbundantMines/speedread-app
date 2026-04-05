@@ -45,23 +45,29 @@ export async function onRequestPost(context) {
             plan_started_at: new Date().toISOString(),
           });
 
-          // Send welcome email
+          // Send trial welcome email (Day 1 activation)
           if (env.RESEND_API_KEY) {
-            await sendEmail(env.RESEND_API_KEY, {
-              to: email,
-              subject: 'Your WarpReader trial has started — Day 1 assignment inside',
-              html: getWelcomeEmail(email, plan),
-            });
+            try {
+              const { TEMPLATES } = await import('./email-templates.js');
+              const { subject, html } = TEMPLATES.trial_welcome(email);
+              await sendEmail(env.RESEND_API_KEY, { to: email, subject, html });
+            } catch (e) { console.error('[trial-welcome]', e); }
           }
 
-          // Schedule Day 3 + Day 7 reminder (store in D1)
+          // Schedule Day 3 + Day 7 trial sequence (store in D1)
           if (env.DB) {
             const now = new Date();
-            const day3 = new Date(now.getTime() + 3 * 86400000).toISOString();
-            const day7 = new Date(now.getTime() + 7 * 86400000).toISOString();
+            const day3 = new Date(now.getTime() + 3 * 86400000);
+            const day7 = new Date(now.getTime() + 7 * 86400000);
+            day3.setUTCHours(15, 0, 0, 0);
+            day7.setUTCHours(15, 0, 0, 0);
             await env.DB.prepare(
-              `INSERT OR IGNORE INTO email_queue (email, template, send_at, sent) VALUES (?, 'day3', ?, 0), (?, 'day7', ?, 0)`
-            ).bind(email, day3, email, day7).run();
+              `INSERT OR IGNORE INTO email_queue (email, template, send_at, sent) VALUES (?, 'trial_day3', ?, 0), (?, 'trial_day7', ?, 0)`
+            ).bind(email, day3.toISOString(), email, day7.toISOString()).run();
+            // Stop the lead nurture sequence — they converted
+            await env.DB.prepare(
+              `DELETE FROM email_queue WHERE email=? AND template IN ('mistakes','science','drill','social_proof','abandon_1','abandon_2')`
+            ).bind(email).run();
           }
         }
         break;

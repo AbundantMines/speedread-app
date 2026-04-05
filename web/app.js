@@ -879,24 +879,29 @@ async function handleAuth() {
 // ── UPGRADE MODAL ──
 // ── LEAD CAPTURE (app) ──
 // ── SOFT LEAD PROMPT (A/B tested: 3s post-upload vs 30s into reading) ──
-function showSoftLeadPrompt() {
+function showSoftLeadPrompt(context) {
   // Show as a toast-style banner, not a blocking modal
   const existing = document.getElementById('soft-lead-prompt');
   if (existing) return;
 
-  // Build dynamic headline based on current WPM (if reading has started)
+  // Build dynamic headline based on context
   const currentWpm = typeof wpm !== 'undefined' ? wpm : 0;
   const wordsRead = typeof sessionWordsRead !== 'undefined' ? sessionWordsRead : 0;
   let headline, subline;
   const variant = sessionStorage.getItem('lead_ab_variant') || 'A_3s';
 
-  if (variant === 'B_30s' && currentWpm > 100 && wordsRead > 50) {
-    headline = `Your reading speed just hit ${currentWpm} WPM — save your progress?`;
+  if (context === 'early') {
+    // Early capture — visitor hasn't uploaded anything yet
+    headline = '⚡ Get the 5-minute drill that adds 100 WPM';
+    subline = 'Free guide + weekly reading speed tips. No spam — just value.';
+  } else if (variant === 'B_30s' && currentWpm > 100 && wordsRead > 50) {
+    headline = `Your speed just hit ${currentWpm} WPM — save your progress?`;
     subline = 'Drop your email to track your progress and sync across devices.';
   } else {
     headline = '💾 Save your reading progress';
     subline = 'Enter email to sync your position across devices';
   }
+  window._leadContext = context || 'upload';
 
   const div = document.createElement('div');
   div.id = 'soft-lead-prompt';
@@ -940,24 +945,36 @@ async function submitSoftLead() {
     document.getElementById('soft-lead-email')?.focus();
     return;
   }
-  // Store locally immediately (so progress saves even before they click the link)
+  const context = window._leadContext || 'upload';
+  const currentWpm = typeof wpm !== 'undefined' ? wpm : null;
+
+  // Store locally immediately
   activateEmailTrial('Reader', email);
   document.getElementById('soft-lead-prompt')?.remove();
 
-  // Send magic link — creates account + authenticates on click, no password needed
+  // Save to D1 and trigger the nurture sequence (5-email value-forward drip)
+  try {
+    await fetch('/api/save-lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        plan: 'lead',
+        source: 'soft_lead_' + context,
+        wpm: currentWpm,
+      }),
+    });
+  } catch (_) {}
+
+  // Send magic link for sign-in (separate from the welcome email)
   if (typeof signInWithMagicLink === 'function') {
-    const { error } = await signInWithMagicLink(email);
-    if (!error) {
-      showToast(`✅ Check your inbox — click the link to sync across all your devices.`, 6000);
-    } else {
-      showToast(`✅ Saved locally! Create an account later to sync across devices.`, 4000);
-    }
-  } else {
-    showToast(`✅ Saved! Your progress will sync across devices.`, 4000);
+    await signInWithMagicLink(email).catch(() => {});
   }
 
+  showToast(`✅ Check your inbox — I just sent you a welcome email with a 5-minute drill that adds 100 WPM.`, 7000);
+
   updateTrialBanner();
-  if (typeof wrTrack === 'function') wrTrack('soft_lead_submitted', { source: 'post_upload' });
+  if (typeof wrTrack === 'function') wrTrack('soft_lead_submitted', { source: context, wpm: currentWpm });
 }
 
 function showAppLeadModal() {
@@ -2937,6 +2954,19 @@ window.addEventListener('DOMContentLoaded', () => {
       const modal = document.getElementById('auth-modal');
       if (modal) modal.classList.remove('hidden');
     }, 300);
+  }
+
+  // ── EARLY EMAIL CAPTURE: fire after 60s for visitors who haven't uploaded ──
+  // This catches the 96% of visitors who never upload a file (real funnel leak)
+  if (!isPro() && !hasSubmittedLead() && !sessionStorage.getItem('lead_prompt_shown') && !sessionStorage.getItem('early_prompt_dismissed')) {
+    setTimeout(() => {
+      // Don't fire if they've already uploaded (soft-lead will fire separately)
+      if (!words.length && !hasSubmittedLead() && !sessionStorage.getItem('lead_prompt_shown')) {
+        sessionStorage.setItem('lead_prompt_shown', '1');
+        if (typeof wrTrack === 'function') wrTrack('early_lead_shown', { delay: 60 });
+        showSoftLeadPrompt('early');
+      }
+    }, 60000);
   }
 
   // ── Post-checkout: link Stripe session to account ──
