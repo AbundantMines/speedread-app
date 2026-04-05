@@ -2,6 +2,11 @@
 // Value-forward marketing: give before you ask. Every email delivers real value,
 // not just a CTA. Brand colors: dark bg #0a0a0a, sky blue #38bdf8, warm text #e8e0d0
 
+// Centralized email signature — Hal is the public face of Warpreader.
+// NEVER attribute emails to Beau or any human.
+const SIG_NAME = "Hal";
+const SIG_TITLE = "Warpreader AI";
+
 const BRAND = {
   bg: '#0a0a0a',
   card: '#0f172a',
@@ -84,7 +89,7 @@ ${wpmLine}
   <a href="https://warpreader.com/app.html?utm_source=email&utm_campaign=welcome" style="background:${BRAND.accent};color:#000;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block">Try it now →</a>
 </div>
 <p style="font-size:14px;color:${BRAND.muted}">Tomorrow I'll send you the 3 biggest mistakes people make when starting speed reading. (Most of them aren't obvious.)</p>
-<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Beau<br><span style="color:${BRAND.muted};font-size:13px">Founder, Warpreader</span></p>`;
+<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Hal<br><span style="color:${BRAND.muted};font-size:13px">Warpreader AI</span></p>`;
   return {
     subject: wpm ? `Your ${wpm} WPM baseline — and why you can double it` : 'The most important skill nobody taught you',
     preheader: 'You\'ll spend 2.5 years of your life reading. Here\'s how to read 3× faster.',
@@ -112,7 +117,7 @@ export function mistakesEmail(email) {
   <a href="https://warpreader.com/app.html?utm_source=email&utm_campaign=mistakes" style="background:${BRAND.accent};color:#000;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block">Open Warpreader →</a>
 </div>
 <p style="font-size:14px;color:${BRAND.muted}">Next email: the science behind why your inner voice is slowing you down (and how RSVP gets around it).</p>
-<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Beau</p>`;
+<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Hal<br><span style="color:${BRAND.muted};font-size:13px">Warpreader AI</span></p>`;
   return {
     subject: '3 mistakes that kill your reading speed',
     preheader: 'The #1 mistake: trying to speed read EVERYTHING. Here\'s when to slow down.',
@@ -143,7 +148,7 @@ export function scienceEmail(email) {
   <a href="https://warpreader.com/app.html?utm_source=email&utm_campaign=science" style="background:${BRAND.accent};color:#000;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block">Experience it →</a>
 </div>
 <p style="font-size:14px;color:${BRAND.muted}">Next email: a 5-minute drill that adds 50-100 WPM in a single session.</p>
-<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Beau</p>`;
+<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Hal<br><span style="color:${BRAND.muted};font-size:13px">Warpreader AI</span></p>`;
   return {
     subject: 'The voice in your head is capping your reading speed',
     preheader: 'Your visual cortex can read at 1,000 WPM. Your inner voice caps you at 250. Here\'s the fix.',
@@ -178,7 +183,7 @@ export function drillEmail(email) {
   <a href="https://warpreader.com/app.html?plan=pro_annual&utm_source=email&utm_campaign=drill" style="background:transparent;color:${BRAND.accent};padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;display:inline-block;border:1px solid ${BRAND.accent}">Try Pro for $1 →</a>
 </div>
 <p style="font-size:14px;color:${BRAND.muted}">No pressure — the free tier is still fully usable.</p>
-<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Beau</p>`;
+<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Hal<br><span style="color:${BRAND.muted};font-size:13px">Warpreader AI</span></p>`;
   return {
     subject: 'The 5-minute drill that adds 100 WPM',
     preheader: 'Do this once a day for a week. Gain 100 WPM without trying harder.',
@@ -213,7 +218,7 @@ export function socialProofEmail(email) {
   <a href="https://warpreader.com/app.html?plan=pro_annual&utm_source=email&utm_campaign=social_proof" style="background:${BRAND.accent};color:#000;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block">Start reading faster →</a>
 </div>
 <p style="font-size:14px;color:${BRAND.muted};text-align:center">$1 for 7 days · cancel anytime · $3.33/mo after trial</p>
-<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Beau</p>`;
+<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Hal<br><span style="color:${BRAND.muted};font-size:13px">Warpreader AI</span></p>`;
   return {
     subject: 'What 500 WPM gets you (math + stories)',
     preheader: 'Average readers finish 12 books/year. Warpreader users finish 24. Same time investment.',
@@ -246,7 +251,7 @@ export function abandonCart1Email(email, plan = 'pro_annual') {
 </div>
 <p style="font-size:14px;color:${BRAND.muted};text-align:center">$1 today · $3.33/mo after 7-day trial · cancel anytime</p>
 <p style="font-size:14px;color:${BRAND.muted}">If something blocked you or you hit an issue, reply and let me know. I read every email.</p>
-<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Beau</p>`;
+<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Hal<br><span style="color:${BRAND.muted};font-size:13px">Warpreader AI</span></p>`;
   return {
     subject: 'You were this close — Warpreader Pro for $1',
     preheader: 'Your checkout link is still valid. Pick up where you left off.',
@@ -265,7 +270,7 @@ export function abandonCart2Email(email, plan = 'pro_annual') {
   <a href="https://warpreader.com/app.html?plan=${plan}&utm_source=email&utm_campaign=abandon_2" style="background:${BRAND.accent};color:#000;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block">Start $1 trial →</a>
 </div>
 <p style="font-size:14px;color:${BRAND.muted};text-align:center">7 days full access. Cancel anytime before day 8 and pay nothing more.</p>
-<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Beau<br><span style="color:${BRAND.muted};font-size:13px">P.S. If you hit a technical issue, reply and I'll fix it personally.</span></p>`;
+<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Hal<br><span style="color:${BRAND.muted};font-size:13px">Warpreader AI<br>P.S. Reply if you hit an issue — I read every email.</span></p>`;
   return {
     subject: 'Your $1 trial link — last ping',
     preheader: 'Average reader: 4 books/year. Warpreader users: 12+. Same time investment.',
@@ -295,7 +300,7 @@ export function trialWelcomeEmail(email) {
 <div style="text-align:center;margin:32px 0">
   <a href="https://warpreader.com/app.html?utm_source=email&utm_campaign=trial_day1" style="background:${BRAND.accent};color:#000;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block">Open Warpreader →</a>
 </div>
-<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Beau<br><span style="color:${BRAND.muted};font-size:13px">P.S. Reply to this email with questions. Seriously, I read everything.</span></p>`;
+<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Hal<br><span style="color:${BRAND.muted};font-size:13px">Warpreader AI<br>P.S. Reply with questions any time.</span></p>`;
   return {
     subject: 'You\'re in. Let\'s make this count. ⚡',
     preheader: '7 days to find out if reading 3× faster is for you. Here\'s your Day 1 plan.',
@@ -322,7 +327,7 @@ export function trialDay3Email(email) {
 <div style="text-align:center;margin:32px 0">
   <a href="https://warpreader.com/app.html?utm_source=email&utm_campaign=trial_day3" style="background:${BRAND.accent};color:#000;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block">Run the drill →</a>
 </div>
-<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Beau</p>`;
+<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Hal<br><span style="color:${BRAND.muted};font-size:13px">Warpreader AI</span></p>`;
   return {
     subject: 'Day 3: Time to push',
     preheader: 'Your brain has adjusted. Time to run the speed-up drill.',
@@ -353,7 +358,7 @@ How many pages did I read this week that I wouldn't have read without Warpreader
   </div>
 </div>
 <p style="font-size:16px;color:${BRAND.text}">Either way — thanks for trying it. You're on a shortlist of people who actually care about reading more and faster. That's not common.</p>
-<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Beau</p>`;
+<p style="font-size:16px;color:${BRAND.text};margin-top:24px">— Hal<br><span style="color:${BRAND.muted};font-size:13px">Warpreader AI</span></p>`;
   return {
     subject: 'Your trial ends tomorrow — here\'s the honest question',
     preheader: 'One question to decide: how many pages did you read this week that you wouldn\'t have otherwise?',

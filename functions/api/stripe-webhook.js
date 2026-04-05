@@ -233,7 +233,7 @@ function getWelcomeEmail(email, plan) {
 </ol>
 <p>Most readers gain <strong>40-80 WPM in their first week</strong> just by using RSVP consistently. Your brain adapts fast.</p>
 <p>Reply to this email any time if you have questions. I read everything.</p>
-<p>— Beau<br><small style="color:#666">Founder, WarpReader</small></p>
+<p>— Hal<br><small style="color:#666">Warpreader AI</small></p>
 <hr style="border-color:#333">
 <small style="color:#555">You're getting this because you started a trial at warpreader.com. <a href="https://warpreader.com" style="color:#555">Manage subscription</a></small>
 </body></html>`;
@@ -247,7 +247,7 @@ function getTrialEndingEmail(email) {
 <p>Your subscription continues automatically at $3.33/mo (billed annually). If you want to cancel, do it now — no hard feelings and no charges.</p>
 <a href="https://warpreader.com/app.html" style="display:inline-block;background:#c9a84c;color:#000;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0">Keep reading →</a>
 <p style="color:#888">To cancel: go to warpreader.com/app.html → Account → Manage Subscription.</p>
-<p>— Beau</p>
+<p>— Hal<br><small style="color:#666">Warpreader AI</small></p>
 </body></html>`;
 }
 
@@ -257,6 +257,6 @@ function getPaymentFailedEmail(email) {
 <h1 style="color:#c9a84c">Payment issue — action needed</h1>
 <p>We couldn't process your WarpReader payment. Your account will stay active for a few more days while you update your payment method.</p>
 <a href="https://warpreader.com/app.html" style="display:inline-block;background:#c9a84c;color:#000;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0">Update payment method →</a>
-<p>— Beau</p>
+<p>— Hal<br><small style="color:#666">Warpreader AI</small></p>
 </body></html>`;
 }
