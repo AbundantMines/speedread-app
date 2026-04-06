@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WarpReader Analytics Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #060d1a;
+      --surface: #0d1a2e;
+      --surface2: #122039;
+      --border: #1e3356;
+      --accent: #38bdf8;
+      --accent-dim: #1a6a9a;
+      --text: #e2e8f0;
+      --text-muted: #7fa3c8;
+      --green: #4ade80;
+      --yellow: #facc15;
+      --red: #f87171;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── Auth overlay ── */
+    #auth-overlay {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+      flex-direction: column; gap: 16px;
+    }
+    #auth-overlay h1 { color: var(--accent); font-size: 24px; }
+    #auth-overlay p { color: var(--text-muted); }
+
+    /* ── Layout ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    header h1 { font-size: 20px; color: var(--accent); letter-spacing: -0.5px; }
+    header h1 span { color: var(--text-muted); font-weight: 400; font-size: 14px; margin-left: 8px; }
+    #refresh-status { color: var(--text-muted); font-size: 12px; }
+    #refresh-btn {
+      background: var(--accent-dim); color: var(--accent);
+      border: 1px solid var(--accent); border-radius: 6px;
+      padding: 6px 14px; cursor: pointer; font-size: 13px;
+      transition: background 0.2s;
+    }
+    #refresh-btn:hover { background: var(--accent); color: var(--bg); }
+
+    main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+    /* ── Grid ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; }
+    .full-width { margin-bottom: 20px; }
+
+    @media (max-width: 900px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .card-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── Stat boxes ── */
+    .stats-row { display: flex; gap: 16px; margin-bottom: 20px; }
+    .stat-box {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+    }
+    .stat-label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.06em; }
+    .stat-value { font-size: 28px; font-weight: 700; color: var(--text); margin: 4px 0; }
+    .stat-delta { font-size: 12px; }
+    .stat-delta.up { color: var(--green); }
+    .stat-delta.down { color: var(--red); }
+    .stat-delta.neutral { color: var(--text-muted); }
+
+    /* ── Canvas charts ── */
+    canvas { display: block; width: 100%; }
+
+    /* ── Anomaly flags ── */
+    .anomaly-list { display: flex; flex-direction: column; gap: 8px; }
+    .anomaly-item {
+      padding: 10px 14px;
+      border-radius: 6px;
+      border-left: 3px solid;
+      font-size: 13px;
+    }
+    .anomaly-item.high { background: rgba(248,113,113,0.08); border-color: var(--red); }
+    .anomaly-item.medium { background: rgba(250,204,21,0.08); border-color: var(--yellow); }
+    .anomaly-item.low { background: rgba(56,189,248,0.08); border-color: var(--accent); }
+    .anomaly-item strong { display: block; margin-bottom: 2px; }
+    .anomaly-item .detail { color: var(--text-muted); font-size: 12px; }
+    .no-anomalies { color: var(--green); font-size: 13px; padding: 8px 0; }
+
+    /* ── Events feed ── */
+    .events-feed { display: flex; flex-direction: column; gap: 6px; max-height: 400px; overflow-y: auto; }
+    .event-row {
+      display: grid;
+      grid-template-columns: 160px 1fr auto;
+      gap: 12px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: var(--surface2);
+      align-items: center;
+      font-size: 12px;
+    }
+    .event-type {
+      background: var(--accent-dim);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .event-meta { color: var(--text-muted); }
+    .event-time { color: var(--text-muted); white-space: nowrap; font-size: 11px; }
+
+    /* ── Funnel bars ── */
+    .funnel-wrap { overflow: hidden; }
+
+    /* ── Loading ── */
+    .loading { color: var(--text-muted); font-size: 13px; padding: 20px 0; text-align: center; }
+    .error-msg { color: var(--red); font-size: 13px; padding: 8px 0; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--surface); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- Auth gate -->
+<div id="auth-overlay">
+  <h1>WarpReader</h1>
+  <p>This dashboard requires an access key.</p>
+</div>
+
+<header>
+  <h1>WarpReader Analytics <span>Dashboard</span></h1>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <span id="refresh-status">–</span>
+    <button id="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+  </div>
+</header>
+
+<main id="main-content" style="display:none;">
+
+  <!-- Key stats row -->
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-label">Page Views (24h)</div>
+      <div class="stat-value" id="stat-pageviews">–</div>
+      <div class="stat-delta neutral" id="stat-pageviews-delta">–</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Checkout Starts (24h)</div>
+      <div class="stat-value" id="stat-checkout">–</div>
+      <div class="stat-delta neutral" id="stat-checkout-delta">–</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Email Capture Rate</div>
+      <div class="stat-value" id="stat-email-rate">–</div>
+      <div class="stat-delta neutral" id="stat-email-rate-sub">–</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Conversions (24h)</div>
+      <div class="stat-value" id="stat-conversions">–</div>
+      <div class="stat-delta neutral" id="stat-conversions-delta">–</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Anomaly Flags</div>
+      <div class="stat-value" id="stat-anomalies" style="color:var(--green)">–</div>
+      <div class="stat-delta neutral" id="stat-anomalies-sub">–</div>
+    </div>
+  </div>
+
+  <!-- Row 1: Funnel + Anomalies -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Funnel Overview (Last 24h)</div>
+      <canvas id="funnel-canvas" height="220"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Anomaly Flags</div>
+      <div id="anomaly-container" class="loading">Loading…</div>
+    </div>
+  </div>
+
+  <!-- Row 2: DAU line chart + Email + Checkout over time -->
+  <div class="grid-2">
+    <div class="card full-width">
+      <div class="card-title">Daily Active Users — Last 30 Days</div>
+      <canvas id="dau-canvas" height="180"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Email Capture Rate (7d)</div>
+      <canvas id="email-canvas" height="180"></canvas>
+    </div>
+  </div>
+
+  <!-- Row 3: Checkout conversion + Recent events -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Checkout Conversion Rate (7d)</div>
+      <canvas id="checkout-canvas" height="180"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Recent Events (live)</div>
+      <div id="events-container" class="loading">Loading…</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // ── Auth gate ─────────────────────────────────────────────────────────────
+  (function() {
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get('key');
+    if (key === 'warpreader-dash-2026') {
+      document.getElementById('auth-overlay').style.display = 'none';
+      document.getElementById('main-content').style.display = 'block';
+    }
+    // else overlay stays visible
+  })();
+
+  // ── Chart helpers ─────────────────────────────────────────────────────────
+  const ACCENT = '#38bdf8';
+  const ACCENT_DIM = 'rgba(56,189,248,0.15)';
+  const GRID_COLOR = 'rgba(30,51,86,0.8)';
+  const TEXT_COLOR = '#7fa3c8';
+
+  function resizeCanvas(canvas) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = parseInt(canvas.getAttribute('height')) * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    return ctx;
+  }
+
+  function drawFunnelChart(canvas, steps) {
+    const ctx = resizeCanvas(canvas);
+    const W = canvas.getBoundingClientRect().width;
+    const H = parseInt(canvas.getAttribute('height'));
+    ctx.clearRect(0, 0, W, H);
+
+    if (!steps || steps.length === 0) {
+      ctx.fillStyle = TEXT_COLOR;
+      ctx.font = '13px sans-serif';
+      ctx.fillText('No data', 20, H / 2);
+      return;
+    }
+
+    const maxVal = Math.max(...steps.map(s => s.value), 1);
+    const barH = 24;
+    const gap = 10;
+    const labelW = 160;
+    const countW = 60;
+    const barAreaW = W - labelW - countW - 20;
+    const totalH = steps.length * (barH + gap);
+    const topPad = (H - totalH) / 2;
+
+    steps.forEach((step, i) => {
+      const y = topPad + i * (barH + gap);
+      const barW = (step.value / maxVal) * barAreaW;
+
+      // Label
+      ctx.fillStyle = TEXT_COLOR;
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(step.label, labelW - 10, y + barH / 2 + 4);
+
+      // Background track
+      ctx.fillStyle = 'rgba(30,51,86,0.5)';
+      ctx.beginPath();
+      ctx.roundRect(labelW, y, barAreaW, barH, 4);
+      ctx.fill();
+
+      // Bar
+      if (barW > 0) {
+        const grad = ctx.createLinearGradient(labelW, 0, labelW + barW, 0);
+        grad.addColorStop(0, ACCENT);
+        grad.addColorStop(1, 'rgba(56,189,248,0.5)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.roundRect(labelW, y, barW, barH, 4);
+        ctx.fill();
+      }
+
+      // Value
+      ctx.fillStyle = step.value > 0 ? '#e2e8f0' : TEXT_COLOR;
+      ctx.textAlign = 'left';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(step.value.toLocaleString(), labelW + barAreaW + 8, y + barH / 2 + 4);
+
+      // Drop-off rate
+      if (i > 0 && steps[i - 1].value > 0) {
+        const rate = ((step.value / steps[i - 1].value) * 100).toFixed(0);
+        ctx.fillStyle = parseInt(rate) < 20 ? '#f87171' : TEXT_COLOR;
+        ctx.font = '10px sans-serif';
+        ctx.fillText(`${rate}%`, labelW + barAreaW + 8, y + barH / 2 + 16);
+      }
+    });
+  }
+
+  function drawLineChart(canvas, labels, datasets, opts = {}) {
+    const ctx = resizeCanvas(canvas);
+    const W = canvas.getBoundingClientRect().width;
+    const H = parseInt(canvas.getAttribute('height'));
+    ctx.clearRect(0, 0, W, H);
+
+    const padL = 50, padR = 20, padT = 16, padB = 30;
+    const chartW = W - padL - padR;
+    const chartH = H - padT - padB;
+
+    if (!labels || labels.length === 0) {
+      ctx.fillStyle = TEXT_COLOR;
+      ctx.font = '13px sans-serif';
+      ctx.fillText('No data', padL, H / 2);
+      return;
+    }
+
+    // Max value
+    const allVals = datasets.flatMap(d => d.data);
+    const maxY = Math.max(...allVals, 1);
+    const minY = opts.minZero ? 0 : Math.min(...allVals, 0);
+    const range = maxY - minY || 1;
+
+    // Grid lines
+    const gridLines = 4;
+    ctx.strokeStyle = GRID_COLOR;
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= gridLines; i++) {
+      const y = padT + (chartH / gridLines) * i;
+      ctx.beginPath();
+      ctx.moveTo(padL, y);
+      ctx.lineTo(padL + chartW, y);
+      ctx.stroke();
+
+      const val = maxY - (range / gridLines) * i;
+      ctx.fillStyle = TEXT_COLOR;
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(opts.pct ? val.toFixed(0) + '%' : Math.round(val).toLocaleString(), padL - 4, y + 3);
+    }
+
+    // X labels
+    ctx.fillStyle = TEXT_COLOR;
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    const step = Math.ceil(labels.length / 8);
+    labels.forEach((lbl, i) => {
+      if (i % step === 0 || i === labels.length - 1) {
+        const x = padL + (i / (labels.length - 1 || 1)) * chartW;
+        ctx.fillText(lbl, x, H - 4);
+      }
+    });
+
+    // Datasets
+    datasets.forEach((ds) => {
+      const color = ds.color || ACCENT;
+      const pts = ds.data.map((v, i) => ({
+        x: padL + (i / (labels.length - 1 || 1)) * chartW,
+        y: padT + (1 - (v - minY) / range) * chartH,
+      }));
+
+      // Fill area
+      if (pts.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, padT + chartH);
+        pts.forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.lineTo(pts[pts.length - 1].x, padT + chartH);
+        ctx.closePath();
+        ctx.fillStyle = ds.fill || 'rgba(56,189,248,0.08)';
+        ctx.fill();
+      }
+
+      // Line
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+      pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+
+      // Dots
+      pts.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+      });
+    });
+  }
+
+  // ── Data loading ──────────────────────────────────────────────────────────
+  let funnelData = null;
+  let statsData = null;
+
+  async function fetchJSON(url) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (e) {
+      console.warn('Fetch error:', url, e.message);
+      return null;
+    }
+  }
+
+  function delta(current, previous) {
+    if (previous === 0) return current > 0 ? '▲ new' : '–';
+    const pct = ((current - previous) / previous * 100).toFixed(0);
+    return (pct >= 0 ? '▲ ' : '▼ ') + Math.abs(pct) + '% vs prev 24h';
+  }
+  function deltaClass(current, previous) {
+    if (current > previous) return 'up';
+    if (current < previous) return 'down';
+    return 'neutral';
+  }
+
+  function renderFunnel(data) {
+    if (!data) return;
+    const last24 = data.funnel?.last_24h || {};
+    const steps = [
+      { label: 'Page Views', key: 'page_view' },
+      { label: 'Pricing Viewed', key: 'pricing_viewed' },
+      { label: 'Checkout Start', key: 'checkout_start' },
+      { label: 'Doc Loaded', key: 'doc_loaded' },
+      { label: 'Lead Shown', key: 'soft_lead_shown' },
+      { label: 'Lead Submitted', key: 'soft_lead_submitted' },
+      { label: 'Signed In', key: 'auth_signed_in' },
+    ].map(s => ({ label: s.label, value: last24[s.key] || 0 }));
+
+    const canvas = document.getElementById('funnel-canvas');
+    requestAnimationFrame(() => drawFunnelChart(canvas, steps));
+  }
+
+  function renderAnomalies(data) {
+    const container = document.getElementById('anomaly-container');
+    if (!data) { container.innerHTML = '<span class="error-msg">Failed to load</span>'; return; }
+
+    const anomalies = data.anomalies || [];
+    const count = data.anomaly_count || 0;
+
+    // Update stat
+    document.getElementById('stat-anomalies').textContent = count;
+    document.getElementById('stat-anomalies').style.color = count > 0 ? 'var(--red)' : 'var(--green)';
+    document.getElementById('stat-anomalies-sub').textContent = count > 0 ? 'Action needed' : 'All clear';
+
+    if (count === 0) {
+      container.innerHTML = '<div class="no-anomalies">✓ No anomalies detected — funnel looks healthy</div>';
+      return;
+    }
+
+    container.innerHTML = '<div class="anomaly-list">' +
+      anomalies.map(a => `
+        <div class="anomaly-item ${a.severity || 'low'}">
+          <strong>${a.flag}</strong>
+          <span class="detail">${a.detail || ''}</span>
+        </div>
+      `).join('') +
+      '</div>';
+  }
+
+  function renderStats(monitorData, statsData) {
+    if (monitorData) {
+      const l24 = monitorData.funnel?.last_24h || {};
+      const p24 = monitorData.funnel?.previous_24h || {};
+
+      document.getElementById('stat-pageviews').textContent = (l24.page_view || 0).toLocaleString();
+      document.getElementById('stat-pageviews-delta').textContent = delta(l24.page_view || 0, p24.page_view || 0);
+      document.getElementById('stat-pageviews-delta').className = 'stat-delta ' + deltaClass(l24.page_view, p24.page_view);
+
+      document.getElementById('stat-checkout').textContent = (l24.checkout_start || 0).toLocaleString();
+      document.getElementById('stat-checkout-delta').textContent = delta(l24.checkout_start || 0, p24.checkout_start || 0);
+      document.getElementById('stat-checkout-delta').className = 'stat-delta ' + deltaClass(l24.checkout_start, p24.checkout_start);
+
+      document.getElementById('stat-conversions').textContent = (l24.auth_signed_in || 0).toLocaleString();
+      document.getElementById('stat-conversions-delta').textContent = delta(l24.auth_signed_in || 0, p24.auth_signed_in || 0);
+      document.getElementById('stat-conversions-delta').className = 'stat-delta ' + deltaClass(l24.auth_signed_in, p24.auth_signed_in);
+
+      const shown = l24.soft_lead_shown || 0;
+      const submitted = l24.soft_lead_submitted || 0;
+      const emailRate = shown > 0 ? ((submitted / shown) * 100).toFixed(1) + '%' : 'N/A';
+      document.getElementById('stat-email-rate').textContent = emailRate;
+      document.getElementById('stat-email-rate-sub').textContent = `${submitted} / ${shown} in 24h`;
+    }
+  }
+
+  function renderDAU(statsData) {
+    const canvas = document.getElementById('dau-canvas');
+    if (!statsData?.daily) {
+      requestAnimationFrame(() => {
+        const ctx = resizeCanvas(canvas);
+        ctx.fillStyle = TEXT_COLOR;
+        ctx.font = '13px sans-serif';
+        ctx.fillText('No daily data available', 20, 80);
+      });
+      return;
+    }
+    const daily = statsData.daily.slice(-30);
+    const labels = daily.map(d => {
+      const dt = new Date(d.date);
+      return `${dt.getMonth() + 1}/${dt.getDate()}`;
+    });
+    const data = daily.map(d => d.page_views || d.count || 0);
+    requestAnimationFrame(() => drawLineChart(canvas, labels, [{ data, color: ACCENT }], { minZero: true }));
+  }
+
+  function renderEmailRate(statsData) {
+    const canvas = document.getElementById('email-canvas');
+    const daily = statsData?.daily?.slice(-7) || [];
+    if (daily.length === 0) {
+      requestAnimationFrame(() => {
+        const ctx = resizeCanvas(canvas);
+        ctx.fillStyle = TEXT_COLOR;
+        ctx.font = '13px sans-serif';
+        ctx.fillText('No data', 20, 80);
+      });
+      return;
+    }
+    const labels = daily.map(d => {
+      const dt = new Date(d.date);
+      return `${dt.getMonth() + 1}/${dt.getDate()}`;
+    });
+    const data = daily.map(d => {
+      const shown = d.soft_lead_shown || 0;
+      const sub = d.soft_lead_submitted || 0;
+      return shown > 0 ? parseFloat(((sub / shown) * 100).toFixed(1)) : 0;
+    });
+    requestAnimationFrame(() => drawLineChart(canvas, labels, [{ data, color: '#4ade80', fill: 'rgba(74,222,128,0.08)' }], { minZero: true, pct: true }));
+  }
+
+  function renderCheckoutRate(statsData) {
+    const canvas = document.getElementById('checkout-canvas');
+    const daily = statsData?.daily?.slice(-7) || [];
+    if (daily.length === 0) {
+      requestAnimationFrame(() => {
+        const ctx = resizeCanvas(canvas);
+        ctx.fillStyle = TEXT_COLOR;
+        ctx.font = '13px sans-serif';
+        ctx.fillText('No data', 20, 80);
+      });
+      return;
+    }
+    const labels = daily.map(d => {
+      const dt = new Date(d.date);
+      return `${dt.getMonth() + 1}/${dt.getDate()}`;
+    });
+    const data = daily.map(d => {
+      const starts = d.checkout_start || 0;
+      const converts = d.auth_signed_in || 0;
+      return starts > 0 ? parseFloat(((converts / starts) * 100).toFixed(1)) : 0;
+    });
+    requestAnimationFrame(() => drawLineChart(canvas, labels, [{ data, color: '#facc15', fill: 'rgba(250,204,21,0.08)' }], { minZero: true, pct: true }));
+  }
+
+  function renderEvents(statsData) {
+    const container = document.getElementById('events-container');
+    const events = statsData?.recent_events || statsData?.events || [];
+    if (!statsData || events.length === 0) {
+      container.innerHTML = '<span class="error-msg">No recent events found</span>';
+      return;
+    }
+    const last20 = events.slice(0, 20);
+    container.innerHTML = '<div class="events-feed">' + last20.map(ev => {
+      const ts = ev.timestamp ? new Date(typeof ev.timestamp === 'number' ? ev.timestamp * 1000 : ev.timestamp) : null;
+      const timeStr = ts ? ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '–';
+      const meta = ev.page || ev.user_id || ev.session_id || '';
+      return `
+        <div class="event-row">
+          <span class="event-type">${ev.event_type || ev.type || 'event'}</span>
+          <span class="event-meta">${meta}</span>
+          <span class="event-time">${timeStr}</span>
+        </div>
+      `;
+    }).join('') + '</div>';
+  }
+
+  // ── Main load ─────────────────────────────────────────────────────────────
+  async function loadAll() {
+    const btn = document.getElementById('refresh-btn');
+    btn.textContent = '↻ Loading…';
+    btn.disabled = true;
+
+    const [monitor, stats] = await Promise.all([
+      fetchJSON('/api/funnel-monitor'),
+      fetchJSON('/api/funnel-stats'),
+    ]);
+
+    funnelData = monitor;
+    statsData = stats;
+
+    renderStats(monitor, stats);
+    renderFunnel(monitor);
+    renderAnomalies(monitor);
+    renderDAU(stats);
+    renderEmailRate(stats);
+    renderCheckoutRate(stats);
+    renderEvents(stats);
+
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('refresh-status').textContent = `Last updated ${now}`;
+    btn.textContent = '↻ Refresh';
+    btn.disabled = false;
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('key') === 'warpreader-dash-2026') {
+    loadAll();
+    // Auto-refresh every 5 minutes
+    setInterval(loadAll, 5 * 60 * 1000);
+  }
+
+  // Redraw on resize
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (funnelData) renderFunnel(funnelData);
+      if (statsData) {
+        renderDAU(statsData);
+        renderEmailRate(statsData);
+        renderCheckoutRate(statsData);
+      }
+    }, 200);
+  });
+</script>
+</body>
+</html>
