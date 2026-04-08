@@ -436,7 +436,10 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
   </div>
 
   <div class="sidebar-section">
-    <div class="sidebar-section-title">📚 Library</div>
+    <div class="sidebar-section-title" style="display:flex;align-items:center;justify-content:space-between">
+      📚 Library
+      <a href="library.html" style="font-size:10px;color:var(--accent);text-decoration:none;font-weight:600;letter-spacing:.04em">MY LIBRARY →</a>
+    </div>
     <input type="text" id="library-search" placeholder="Search 61K books…" style="width:100%;margin-bottom:8px;font-size:12px;padding:6px 10px" oninput="searchLibrary(this.value)">
     <div class="library-chips" id="library-chips">
       <button class="lib-chip active" onclick="filterLibrary('all',this)">All</button>
@@ -1036,6 +1039,7 @@ body { display: flex; min-height: 100vh; overflow-x: hidden; }
 <script src="auth.js"></script>
 <script src="billing.js"></script>
 <script src="sync.js"></script>
+<script src="library.js"></script>
 <script src="app.js"></script>
 
 <!-- DRM Help Modal -->

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>if(location.hostname==='swiftread.app')location.replace('https://warpreader.com'+location.pathname+location.search+location.hash);</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#060d1a">
+<title>My Library — Warpreader</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, -apple-system, sans-serif; min-height: 100vh; }
+
+/* ─── NAV ─── */
+.lib-nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(6,13,26,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border); padding: 14px 0;
+}
+.lib-nav .container { display: flex; align-items: center; justify-content: space-between; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+.lib-nav-logo { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; }
+.lib-nav-logo span { color: var(--accent); }
+.lib-nav-links { display: flex; align-items: center; gap: 20px; }
+.lib-nav-links a { color: var(--text-muted); font-size: .9rem; text-decoration: none; transition: color .15s; }
+.lib-nav-links a:hover { color: var(--text); }
+.lib-nav-links a.active { color: var(--accent); font-weight: 600; }
+
+/* ─── CONTAINER ─── */
+.lib-container { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+
+/* ─── HEADER ─── */
+.lib-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; flex-wrap: wrap; gap: 16px; }
+.lib-header h1 { font-size: 28px; font-weight: 800; }
+
+/* ─── STREAK BANNER ─── */
+.streak-banner {
+  display: flex; align-items: center; gap: 16px;
+  background: linear-gradient(135deg, rgba(251,191,36,0.12), rgba(251,191,36,0.04));
+  border: 1px solid rgba(251,191,36,0.25); border-radius: 14px;
+  padding: 16px 24px; margin-bottom: 28px;
+}
+.streak-flame { font-size: 2.5rem; line-height: 1; }
+.streak-info { flex: 1; }
+.streak-count { font-size: 1.5rem; font-weight: 800; color: #fbbf24; }
+.streak-label { font-size: .85rem; color: var(--text-muted); margin-top: 2px; }
+.streak-best { font-size: .75rem; color: var(--text-muted); opacity: .7; }
+
+/* ─── STATS ROW ─── */
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 32px; }
+.stat-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 18px 16px; text-align: center;
+}
+.stat-value { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+.stat-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .8px; color: var(--text-muted); margin-top: 4px; }
+
+/* ─── WEEKLY BAR CHART ─── */
+.weekly-chart { display: flex; align-items: flex-end; gap: 8px; height: 80px; }
+.weekly-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.weekly-bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--accent); min-height: 2px; transition: height .3s; }
+.weekly-day { font-size: .65rem; color: var(--text-muted); text-transform: uppercase; }
+
+/* ─── DOCUMENT GRID ─── */
+.doc-grid-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.doc-grid-header h2 { font-size: 18px; font-weight: 700; }
+.doc-count { font-size: .85rem; color: var(--text-muted); }
+.doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-bottom: 32px; }
+
+/* ─── DOCUMENT CARD ─── */
+.doc-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px; cursor: pointer; transition: border-color .15s, transform .15s, box-shadow .15s;
+  position: relative; overflow: hidden;
+}
+.doc-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow-accent); }
+.doc-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.doc-title { font-size: 1rem; font-weight: 700; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.doc-format {
+  font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  padding: 3px 8px; border-radius: 6px; flex-shrink: 0; margin-left: 12px;
+  background: var(--accent-dim); color: var(--accent);
+}
+.doc-meta { font-size: .8rem; color: var(--text-muted); margin-bottom: 12px; }
+.doc-progress-bar { width: 100%; height: 6px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.doc-progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .3s; }
+.doc-progress-text { display: flex; justify-content: space-between; font-size: .75rem; color: var(--text-muted); }
+.doc-actions { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.doc-resume-btn {
+  flex: 1; padding: 10px 16px; background: var(--accent); color: #000; border: none;
+  border-radius: 8px; font-weight: 700; font-size: .85rem; cursor: pointer;
+  transition: opacity .15s;
+}
+.doc-resume-btn:hover { opacity: .9; }
+.doc-delete-btn {
+  padding: 10px; background: none; border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text-muted); cursor: pointer; font-size: 1rem; transition: color .15s, border-color .15s;
+}
+.doc-delete-btn:hover { color: var(--red); border-color: var(--red); }
+
+/* ─── EMPTY STATE ─── */
+.empty-state {
+  text-align: center; padding: 80px 24px;
+  background: var(--bg-card); border: 2px dashed var(--border); border-radius: 20px;
+}
+.empty-icon { font-size: 4rem; margin-bottom: 16px; }
+.empty-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; }
+.empty-sub { font-size: .95rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6; }
+.empty-cta {
+  display: inline-block; padding: 14px 32px; background: var(--accent); color: #000;
+  border-radius: 10px; font-weight: 800; font-size: 1rem; text-decoration: none;
+  transition: opacity .15s;
+}
+.empty-cta:hover { opacity: .9; }
+
+/* ─── FREE LIMIT BANNER ─── */
+.free-limit-banner {
+  background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(245,158,11,0.04));
+  border: 1px solid rgba(245,158,11,0.3); border-radius: 12px;
+  padding: 14px 20px; margin-bottom: 24px; font-size: .9rem;
+  display: flex; align-items: center; gap: 12px;
+}
+.free-limit-banner a { color: #f59e0b; font-weight: 700; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 640px) {
+  .doc-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .lib-header h1 { font-size: 22px; }
+  .streak-banner { flex-direction: column; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="lib-nav">
+  <div class="container">
+    <a href="app.html" class="lib-nav-logo">⚡ <span>Warpreader</span></a>
+    <div class="lib-nav-links">
+      <a href="app.html">Reader</a>
+      <a href="library.html" class="active">Library</a>
+      <a href="training.html">Training</a>
+      <a href="test.html">Speed Test</a>
+    </div>
+  </div>
+</nav>
+
+<div class="lib-container">
+
+  <!-- HEADER -->
+  <div class="lib-header">
+    <h1>📚 My Library</h1>
+    <a href="app.html" class="doc-resume-btn" style="flex:none;padding:10px 20px;text-decoration:none">
+      + Upload New
+    </a>
+  </div>
+
+  <!-- STREAK BANNER -->
+  <div class="streak-banner" id="streak-banner" style="display:none">
+    <div class="streak-flame">🔥</div>
+    <div class="streak-info">
+      <div class="streak-count" id="streak-count">0 day streak</div>
+      <div class="streak-label">Keep reading daily to maintain your streak!</div>
+      <div class="streak-best" id="streak-best"></div>
+    </div>
+  </div>
+
+  <!-- STATS ROW -->
+  <div class="stats-row" id="stats-row">
+    <div class="stat-card">
+      <div class="stat-value" id="stat-docs">0</div>
+      <div class="stat-label">Documents</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-completed">0</div>
+      <div class="stat-label">Completed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-words">0</div>
+      <div class="stat-label">Words Read</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-wpm">—</div>
+      <div class="stat-label">Avg WPM</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-streak">0</div>
+      <div class="stat-label">Day Streak</div>
+    </div>
+    <div class="stat-card" style="position:relative">
+      <div class="stat-value" id="stat-weekly-time">0m</div>
+      <div class="stat-label">This Week</div>
+      <div class="weekly-chart" id="weekly-chart" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- FREE LIMIT BANNER -->
+  <div class="free-limit-banner" id="free-limit-banner" style="display:none">
+    📚 Free plan: 3 documents max. <a href="app.html" onclick="localStorage.setItem('wr_show_upgrade','1')">Upgrade to Pro</a> for unlimited documents + cloud sync.
+  </div>
+
+  <!-- DOCUMENT GRID -->
+  <div class="doc-grid-header">
+    <h2>Your Documents</h2>
+    <div class="doc-count" id="doc-count"></div>
+  </div>
+
+  <div id="doc-grid" class="doc-grid"></div>
+
+  <!-- EMPTY STATE -->
+  <div class="empty-state" id="empty-state" style="display:none">
+    <div class="empty-icon">📖</div>
+    <div class="empty-title">Your library is empty</div>
+    <div class="empty-sub">Upload a PDF, EPUB, or paste text to get started.<br>Your documents and reading progress are saved here automatically.</div>
+    <a href="app.html" class="empty-cta">Start Reading →</a>
+  </div>
+
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Scripts (auth needed for Pro checks + cloud sync) -->
+<script src="auth.js"></script>
+<script src="billing.js"></script>
+<script src="sync.js"></script>
+<script src="library.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  // ── Toast (minimal version for library page) ──
+  window.showToast = function(msg, duration) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = msg;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.animation = 'fadeOut 0.2s ease forwards';
+      setTimeout(() => toast.remove(), 220);
+    }, duration || 3000);
+  };
+
+  // ── Time Ago ──
+  function timeAgo(ts) {
+    if (!ts) return 'Never';
+    const diff = Date.now() - ts;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return days + 'd ago';
+    return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  function formatWords(n) {
+    if (!n) return '0';
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return n.toLocaleString();
+  }
+
+  function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // ── Render Stats ──
+  async function renderStats() {
+    const lib = WarpLibrary.getLibraryMeta();
+    const stats = WarpLibrary.getCumulativeStats();
+    const streak = WarpLibrary.getStreak();
+    const weekly = await WarpLibrary.getWeeklyReadingTime();
+
+    document.getElementById('stat-docs').textContent = lib.length;
+    document.getElementById('stat-completed').textContent = WarpLibrary.getCompletedCount();
+    document.getElementById('stat-words').textContent = formatWords(stats.totalWordsRead || parseInt(localStorage.getItem('wr_total_words') || '0'));
+    document.getElementById('stat-wpm').textContent = stats.avgWpm || (parseInt(localStorage.getItem('speedread_preferred_wpm')) || '—');
+    document.getElementById('stat-streak').textContent = streak.current || 0;
+    document.getElementById('stat-weekly-time').textContent = (weekly.totalMinutes || 0) + 'm';
+
+    // Streak banner
+    const banner = document.getElementById('streak-banner');
+    if (streak.current > 0) {
+      banner.style.display = 'flex';
+      document.getElementById('streak-count').textContent = streak.current + ' day streak';
+      document.getElementById('streak-best').textContent = streak.best > streak.current ? 'Best: ' + streak.best + ' days' : '';
+    }
+
+    // Weekly chart
+    renderWeeklyChart(weekly.daily);
+
+    // Free limit
+    const isProUser = typeof isPro === 'function' && isPro();
+    if (!isProUser && lib.length >= WarpLibrary.FREE_DOC_LIMIT) {
+      document.getElementById('free-limit-banner').style.display = 'flex';
+    }
+
+    document.getElementById('doc-count').textContent = lib.length + ' document' + (lib.length !== 1 ? 's' : '');
+  }
+
+  function renderWeeklyChart(dailyMinutes) {
+    const chart = document.getElementById('weekly-chart');
+    if (!chart) return;
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const today = new Date().getDay();
+    // Reorder: show last 7 days ending today
+    const ordered = [];
+    for (let i = 6; i >= 0; i--) {
+      const dayIdx = (today - i + 7) % 7;
+      ordered.push(days[dayIdx]);
+    }
+    const maxMin = Math.max(1, ...ordered.map(d => dailyMinutes[d] || 0));
+    chart.innerHTML = ordered.map(d => {
+      const mins = dailyMinutes[d] || 0;
+      const h = Math.max(2, (mins / maxMin) * 60);
+      return `<div class="weekly-bar-wrap">
+        <div class="weekly-bar" style="height:${h}px" title="${mins}min"></div>
+        <div class="weekly-day">${d}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Render Documents ──
+  function renderDocuments() {
+    const lib = WarpLibrary.getLibraryMeta();
+    const grid = document.getElementById('doc-grid');
+    const empty = document.getElementById('empty-state');
+
+    if (lib.length === 0) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+
+    empty.style.display = 'none';
+
+    // Sort by lastReadAt descending
+    const sorted = [...lib].sort((a, b) => (b.lastReadAt || 0) - (a.lastReadAt || 0));
+
+    const formatColors = { PDF: '#ef4444', EPUB: '#8b5cf6', TXT: '#3b82f6', MD: '#22c55e' };
+
+    grid.innerHTML = sorted.map(doc => {
+      const progress = doc.progress || 0;
+      const color = formatColors[doc.format] || '#3b82f6';
+      const lastRead = timeAgo(doc.lastReadAt);
+      const wordsStr = doc.totalWords ? doc.totalWords.toLocaleString() + ' words' : '';
+      const btnLabel = progress > 0 && progress < 100 ? 'Resume Reading' : progress >= 100 ? 'Read Again' : 'Start Reading';
+
+      return `<div class="doc-card" data-id="${doc.id}">
+        <div class="doc-card-top">
+          <div class="doc-title">${escHtml(doc.title)}</div>
+          <div class="doc-format" style="background:${color}22;color:${color};border:1px solid ${color}44">${doc.format || 'TXT'}</div>
+        </div>
+        <div class="doc-meta">${wordsStr}${wordsStr && lastRead ? ' · ' : ''}Last read: ${lastRead}</div>
+        <div class="doc-progress-bar"><div class="doc-progress-fill" style="width:${progress}%;background:${color}"></div></div>
+        <div class="doc-progress-text">
+          <span>${progress}% complete</span>
+          <span>Word ${(doc.position || 0).toLocaleString()} / ${(doc.totalWords || 0).toLocaleString()}</span>
+        </div>
+        <div class="doc-actions">
+          <button class="doc-resume-btn" onclick="event.stopPropagation();openDoc('${doc.id}')">${btnLabel}</button>
+          <button class="doc-delete-btn" onclick="event.stopPropagation();removeDoc('${doc.id}')" title="Remove">🗑</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Actions ──
+  window.openDoc = function(docId) {
+    // Navigate to reader with the doc ID — app.js will load from IDB
+    window.location.href = 'app.html?library_doc=' + encodeURIComponent(docId);
+  };
+
+  window.removeDoc = async function(docId) {
+    if (!confirm('Remove this document from your library?')) return;
+    await WarpLibrary.deleteFromLibrary(docId);
+    renderDocuments();
+    renderStats();
+    showToast('Document removed');
+  };
+
+  // ── Init ──
+  async function init() {
+    await WarpLibrary.openLibraryDB();
+
+    // Theme
+    const theme = localStorage.getItem('speedread_theme');
+    if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+
+    // Sync from cloud if Pro
+    await WarpLibrary.syncFromCloud();
+
+    renderDocuments();
+    await renderStats();
+  }
+
+  // Wait for auth to initialize, then render
+  document.addEventListener('DOMContentLoaded', () => {
+    // Give auth.js time to initialize
+    setTimeout(init, 500);
+  });
+
+})();
+</script>
+</body>
+</html>

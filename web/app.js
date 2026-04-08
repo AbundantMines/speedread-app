@@ -121,6 +121,12 @@ function pause() {
     updateXP(sw);
     const xpGained = Math.floor(sw / 100);
     showToast(`⏸ Paused · +${xpGained} XP · 🔥 ${newStreak.current} day streak`, 3000);
+    // Log session to WarpLibrary module
+    if (typeof WarpLibrary !== 'undefined') {
+      const dur = sessionStartTime ? Math.round((Date.now() - sessionStartTime) / 1000) : 0;
+      WarpLibrary.logReadingSession(currentFile.libraryId || null, sw, wpm, dur).catch(() => {});
+      WarpLibrary.recordStreakToday();
+    }
     sessionWordsRead = 0;
   }
 }
@@ -689,6 +695,16 @@ function processText(text) {
   } else {
     showToast(`📄 Loaded — ${words.length.toLocaleString()} words`);
   }
+  // Auto-save to WarpLibrary (IndexedDB) for all users
+  if (typeof WarpLibrary !== 'undefined' && currentFile.name && !currentFile._courseContent) {
+    const rawText = words.join(' ');
+    WarpLibrary.saveToLibrary(currentFile.name, WarpLibrary.detectFormat(currentFile.name), rawText, words.length)
+      .then(id => {
+        if (id && !currentFile.libraryId) currentFile.libraryId = id;
+      })
+      .catch(() => {});
+  }
+
   // Offer save to library for logged-in users (not for course content)
   if (isLoggedIn && typeof isLoggedIn === 'function' && isLoggedIn() && currentFile.name && !currentFile._courseContent) {
     const lib = getLocalLibrary();
@@ -2416,6 +2432,10 @@ function savePositionToLibrary() {
     book.lastReadAt = Date.now();
     localStorage.setItem('wr_library', JSON.stringify(lib));
   }
+  // Also update WarpLibrary module (used by library.html)
+  if (typeof WarpLibrary !== 'undefined') {
+    WarpLibrary.updateDocPosition(currentFile.libraryId, currentIdx, words.length);
+  }
 }
 
 // ── FEATURE 2: STREAK + PROGRESSION LEVELS ──
@@ -2953,6 +2973,38 @@ window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       const modal = document.getElementById('auth-modal');
       if (modal) modal.classList.remove('hidden');
+    }, 300);
+  }
+
+  // ── LIBRARY: Open document from library page (?library_doc=id) ──
+  const libraryDocId = params.get('library_doc');
+  if (libraryDocId && typeof WarpLibrary !== 'undefined') {
+    window.history.replaceState({}, '', window.location.pathname);
+    setTimeout(async () => {
+      try {
+        await WarpLibrary.openLibraryDB();
+        const content = await WarpLibrary.getDocContent(libraryDocId);
+        if (!content) { showToast('Document not found — it may have been deleted.', 4000); return; }
+        const lib = WarpLibrary.getLibraryMeta();
+        const meta = lib.find(d => d.id === libraryDocId);
+        const title = meta ? meta.title : 'Library Document';
+        currentFile = { name: title, size: content.length, libraryId: libraryDocId };
+        showReader();
+        document.getElementById('book-title-text').textContent = title;
+        processText(content);
+        // Resume from saved position
+        if (meta && meta.position > 0) {
+          currentIdx = meta.position;
+          displayWord(words[currentIdx]);
+          updateProgress();
+          showToast(`📖 Resumed "${title.slice(0,30)}" at ${meta.progress || 0}%`, 3000);
+        } else {
+          showToast(`📄 Loaded: ${title}`);
+        }
+      } catch (e) {
+        console.error('[Library] Failed to load doc:', e);
+        showToast('Failed to load document from library', 4000);
+      }
     }, 300);
   }
 
