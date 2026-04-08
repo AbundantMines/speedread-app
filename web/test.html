@@ -232,7 +232,7 @@
       </div>
 
       <div class="cta-section">
-        <h3 id="cta-headline">Start training — 7 days for $1</h3>
+        <h3 id="cta-headline">Train to <span id="cta-target-wpm-inline">350+</span> WPM — Try WarpReader Free for 7 Days</h3>
         <p id="cta-sub">Most readers hit <strong id="cta-target-wpm">350+</strong> WPM in their first month. $1 today, cancel before day 7 and owe nothing more.</p>
         <button onclick="openCheckout('pro_annual')" class="btn btn-primary" style="padding:16px 48px;font-size:1.05rem;font-weight:700;border:none;cursor:pointer">
           Try 7 Days for $1 →
@@ -341,6 +341,8 @@
     // Dynamic CTA copy based on result
     const targetWpm = Math.min(p30d, 500);
     document.getElementById('cta-target-wpm').textContent = targetWpm + '+';
+    const inlineEl = document.getElementById('cta-target-wpm-inline');
+    if (inlineEl) inlineEl.textContent = targetWpm + '+';
     if (pct < 40) {
       document.getElementById('cta-headline').textContent = 'You can double your speed — try it for $1';
       document.getElementById('cta-sub').innerHTML = `Most readers at your level reach <strong>${targetWpm} WPM</strong> within 30 days. $1 today, cancel before day 7 to pay nothing more.`;
