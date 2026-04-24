@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Words Per Minute Chart — Reading Speed by Level | WarpReader</title>
+  <meta name="description" content="Visual chart of reading speeds by level: below average, average, above average, speed reader, and elite. See where you rank and how RSVP training can level you up.">
+  <link rel="canonical" href="https://warpreader.com/tools/wpm-chart.html">
+  <meta name="theme-color" content="#060d1a">
+
+  <meta property="og:title" content="Words Per Minute Chart — Reading Speed Levels Explained">
+  <meta property="og:description" content="See where your reading speed ranks. Visual chart from below average to elite speed reader.">
+  <meta property="og:image" content="https://warpreader.com/assets/og-default.png">
+  <meta property="og:url" content="https://warpreader.com/tools/wpm-chart.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="WarpReader">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Words Per Minute Chart — Reading Speed Levels">
+  <meta name="twitter:description" content="Visual chart of reading speeds: from below average to elite. Where do you rank?">
+  <meta name="twitter:image" content="https://warpreader.com/assets/og-default.png">
+  <meta name="twitter:site" content="@warpreader">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Words Per Minute Chart",
+    "url": "https://warpreader.com/tools/wpm-chart.html",
+    "description": "Visual chart of reading speeds by level with percentile rankings and tips for improvement."
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://warpreader.com" },
+      { "@type": "ListItem", "position": 2, "name": "Tools", "item": "https://warpreader.com/tools/reading-speed-calculator.html" },
+      { "@type": "ListItem", "position": 3, "name": "WPM Chart" }
+    ]
+  }
+  </script>
+
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #060d1a; --bg-card: #0d1f35; --bg-elevated: #132a48; --accent: #38bdf8; --accent-hover: #7dd3fc; --text: #e2e8f0; --text-muted: #94a3b8; --border: #1e3a5f; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; font-size: 17px; }
+    a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 16px 32px; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 100; }
+    .nav-brand { font-size: 1.1rem; font-weight: 800; color: var(--accent); text-decoration: none; }
+    .nav-links { display: flex; gap: 20px; align-items: center; }
+    .nav-links a { color: var(--text-muted); font-size: .9rem; }
+    .nav-cta { background: var(--accent); color: #000; padding: 8px 18px; border-radius: 8px; font-weight: 700; font-size: .9rem; text-decoration: none; }
+    main { max-width: 800px; margin: 0 auto; padding: 48px 24px 80px; }
+    .breadcrumb { font-size: .82rem; color: var(--text-muted); margin-bottom: 24px; }
+    .breadcrumb a { color: var(--text-muted); }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.03em; line-height: 1.2; margin-bottom: 16px; }
+    .subtitle { color: var(--text-muted); font-size: 1.05rem; margin-bottom: 48px; }
+    h2 { font-size: 1.4rem; font-weight: 800; margin: 48px 0 16px; }
+    h3 { font-size: 1.1rem; font-weight: 700; margin: 28px 0 10px; }
+    p { margin-bottom: 18px; }
+    ul, ol { padding-left: 24px; margin-bottom: 18px; }
+    li { margin-bottom: 8px; }
+
+    /* CHART */
+    .chart { margin-bottom: 48px; }
+    .chart-row { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
+    .chart-label { width: 160px; flex-shrink: 0; text-align: right; font-size: .9rem; font-weight: 600; }
+    .chart-bar-wrap { flex: 1; position: relative; }
+    .chart-bar { height: 44px; border-radius: 10px; display: flex; align-items: center; padding: 0 16px; font-weight: 700; font-size: .92rem; position: relative; transition: width .6s ease; }
+    .chart-wpm { position: absolute; right: 12px; font-size: .82rem; font-weight: 600; opacity: .85; }
+    .chart-pct { width: 60px; flex-shrink: 0; text-align: center; font-size: .82rem; color: var(--text-muted); }
+
+    .chart-row:nth-child(1) .chart-bar { width: 20%; background: linear-gradient(90deg, #ef4444, #f87171); color: #fff; }
+    .chart-row:nth-child(2) .chart-bar { width: 35%; background: linear-gradient(90deg, #f59e0b, #fbbf24); color: #000; }
+    .chart-row:nth-child(3) .chart-bar { width: 55%; background: linear-gradient(90deg, #22c55e, #4ade80); color: #000; }
+    .chart-row:nth-child(4) .chart-bar { width: 80%; background: linear-gradient(90deg, #3b82f6, #60a5fa); color: #fff; }
+    .chart-row:nth-child(5) .chart-bar { width: 100%; background: linear-gradient(90deg, #8b5cf6, #a78bfa); color: #fff; }
+
+    .rsvp-highlight { background: var(--bg-card); border: 1.5px solid var(--accent); border-radius: 16px; padding: 24px 28px; margin: 32px 0; display: flex; align-items: center; gap: 20px; }
+    .rsvp-highlight .icon { font-size: 2.5rem; flex-shrink: 0; }
+    .rsvp-highlight .text { font-size: .95rem; color: var(--text-muted); line-height: 1.65; }
+    .rsvp-highlight .text strong { color: var(--text); }
+
+    /* TABLE */
+    .speed-table { width: 100%; border-collapse: collapse; margin: 24px 0; }
+    .speed-table th, .speed-table td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: .92rem; }
+    .speed-table th { color: var(--text-muted); font-weight: 600; font-size: .82rem; text-transform: uppercase; letter-spacing: .04em; }
+    .speed-table .highlight-row { background: rgba(56,189,248,0.06); }
+    .speed-table .highlight-row td { color: var(--accent); font-weight: 600; }
+
+    .cta-box { background: var(--bg-card); border: 1.5px solid var(--accent); border-radius: 16px; padding: 32px; text-align: center; margin: 48px 0; }
+    .cta-box h3 { font-size: 1.2rem; margin-bottom: 8px; }
+    .cta-box p { color: var(--text-muted); font-size: .95rem; margin-bottom: 16px; }
+    .cta-link { display: inline-block; background: var(--accent); color: #000; font-weight: 700; padding: 12px 28px; border-radius: 10px; text-decoration: none; }
+    .cta-link:hover { background: var(--accent-hover); text-decoration: none; }
+
+    .content-section p, .content-section li { color: var(--text-muted); line-height: 1.75; }
+
+    .tools-nav { display: flex; gap: 12px; flex-wrap: wrap; margin: 40px 0; padding: 20px 0; border-top: 1px solid var(--border); }
+    .tools-nav a { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: .88rem; font-weight: 600; color: var(--text-muted); transition: border-color .2s, color .2s; text-decoration: none; }
+    .tools-nav a:hover { border-color: var(--accent); color: var(--accent); }
+    .tools-nav a.active { border-color: var(--accent); color: var(--accent); }
+
+    footer { text-align: center; padding: 32px 24px; color: var(--text-muted); font-size: .85rem; border-top: 1px solid var(--border); }
+    footer a { color: var(--text-muted); }
+
+    @media (max-width: 600px) {
+      .chart-label { width: 100px; font-size: .8rem; }
+      .chart-pct { width: 40px; font-size: .75rem; }
+      .rsvp-highlight { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">⚡ WarpReader</a>
+  <div class="nav-links">
+    <a href="/test">Speed Test</a>
+    <a href="/blog/">Blog</a>
+    <a href="/app.html" class="nav-cta">Start Free</a>
+  </div>
+</nav>
+
+<main>
+  <div class="breadcrumb">
+    <a href="/">Home</a> › <a href="/tools/reading-speed-calculator.html">Tools</a> › WPM Chart
+  </div>
+
+  <h1>Words Per Minute Chart</h1>
+  <p class="subtitle">How fast do you read compared to others? This chart breaks down reading speeds by level — from below average to elite — so you can see exactly where you stand.</p>
+
+  <!-- VISUAL CHART -->
+  <div class="chart">
+    <div class="chart-row">
+      <div class="chart-label">Below Average</div>
+      <div class="chart-bar-wrap"><div class="chart-bar"><span class="chart-wpm">&lt; 150 WPM</span></div></div>
+      <div class="chart-pct">~15%</div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-label">Average</div>
+      <div class="chart-bar-wrap"><div class="chart-bar"><span class="chart-wpm">200–250 WPM</span></div></div>
+      <div class="chart-pct">~50%</div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-label">Above Average</div>
+      <div class="chart-bar-wrap"><div class="chart-bar"><span class="chart-wpm">300–400 WPM</span></div></div>
+      <div class="chart-pct">~75%</div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-label">Speed Reader</div>
+      <div class="chart-bar-wrap"><div class="chart-bar"><span class="chart-wpm">400–700 WPM</span></div></div>
+      <div class="chart-pct">~93%</div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-label">Elite</div>
+      <div class="chart-bar-wrap"><div class="chart-bar"><span class="chart-wpm">700+ WPM</span></div></div>
+      <div class="chart-pct">~99%</div>
+    </div>
+  </div>
+  <p style="text-align:center;color:var(--text-muted);font-size:.82rem;margin-top:-24px;margin-bottom:32px">Percentile = % of adults you read faster than</p>
+
+  <div class="rsvp-highlight">
+    <div class="icon">⚡</div>
+    <div class="text">
+      <strong>Where do RSVP readers land?</strong> Most WarpReader users start at 200–250 WPM (average) and reach 400–600 WPM within 30 days of training — moving from "average" to "speed reader" territory. The technique eliminates eye movement, letting your brain focus entirely on comprehension.
+    </div>
+  </div>
+
+  <div class="cta-box">
+    <h3>Find out where you rank</h3>
+    <p>Take our free 60-second speed reading test. No signup required — get your WPM instantly.</p>
+    <a href="/test" class="cta-link">Take the Free Speed Test →</a>
+  </div>
+
+  <!-- DETAILED TABLE -->
+  <div class="content-section">
+    <h2>Reading Speed Levels Explained</h2>
+    <table class="speed-table">
+      <thead>
+        <tr><th>Level</th><th>WPM Range</th><th>Percentile</th><th>Typical Reader</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Below Average</td>
+          <td>&lt; 150 WPM</td>
+          <td>Bottom 15%</td>
+          <td>May have reading difficulties, very dense material, or non-native language</td>
+        </tr>
+        <tr>
+          <td>Average</td>
+          <td>200–250 WPM</td>
+          <td>40–60%</td>
+          <td>Most adults — the speed learned in elementary school, unchanged since</td>
+        </tr>
+        <tr>
+          <td>Above Average</td>
+          <td>300–400 WPM</td>
+          <td>65–80%</td>
+          <td>College-educated, avid readers, professionals who read frequently</td>
+        </tr>
+        <tr class="highlight-row">
+          <td>Speed Reader</td>
+          <td>400–700 WPM</td>
+          <td>85–95%</td>
+          <td>Trained speed readers, RSVP users after 2–4 weeks of practice</td>
+        </tr>
+        <tr>
+          <td>Elite</td>
+          <td>700+ WPM</td>
+          <td>Top 1–5%</td>
+          <td>Competitive speed readers, extensive training, RSVP + chunking mastery</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Reading Speed by Age Group</h2>
+    <table class="speed-table">
+      <thead>
+        <tr><th>Age / Grade</th><th>Average WPM</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1st Grade (6–7)</td><td>53–80 WPM</td><td>Learning to decode words</td></tr>
+        <tr><td>3rd Grade (8–9)</td><td>107–162 WPM</td><td>Transitioning to reading for meaning</td></tr>
+        <tr><td>5th Grade (10–11)</td><td>139–194 WPM</td><td>Speed mostly plateaus after this</td></tr>
+        <tr><td>High School</td><td>200–250 WPM</td><td>Reaches adult average</td></tr>
+        <tr><td>College</td><td>250–350 WPM</td><td>Higher due to reading volume</td></tr>
+        <tr><td>Adults (general)</td><td>238 WPM</td><td>National average, rarely trained</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Reading Speed by Material Type</h2>
+    <table class="speed-table">
+      <thead>
+        <tr><th>Material</th><th>Typical WPM</th><th>Why</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Legal/medical documents</td><td>150–200 WPM</td><td>Dense, unfamiliar terminology, high stakes</td></tr>
+        <tr><td>Textbooks</td><td>180–250 WPM</td><td>New concepts requiring processing</td></tr>
+        <tr><td>Non-fiction books</td><td>200–300 WPM</td><td>Moderate density, familiar topics</td></tr>
+        <tr><td>Fiction</td><td>250–350 WPM</td><td>Flowing narrative, less re-reading</td></tr>
+        <tr><td>Email / social media</td><td>300–400 WPM</td><td>Familiar formats, natural skimming</td></tr>
+      </tbody>
+    </table>
+
+    <h2>How to Move Up the Chart</h2>
+    <p>Most people never train their reading speed after elementary school. That means the ceiling is much higher than where you currently sit. Here's how to move up:</p>
+    <ol>
+      <li><strong>Benchmark first:</strong> <a href="/test">Take the free speed test</a> to know your starting point.</li>
+      <li><strong>Use RSVP:</strong> Rapid Serial Visual Presentation eliminates eye movement — the #1 bottleneck in reading speed. <a href="/blog/what-is-rsvp-reading">Learn how RSVP works →</a></li>
+      <li><strong>Train daily:</strong> 10 minutes/day is enough. WarpReader's <a href="/training.html">28-day course</a> builds speed progressively.</li>
+      <li><strong>Monitor comprehension:</strong> Speed without retention is useless. Use <a href="/app.html">WarpReader's AI quizzes</a> to stay honest.</li>
+      <li><strong>Push intervals:</strong> Alternate between comfortable speed and 20% faster. Your brain adapts to the stretch.</li>
+    </ol>
+
+    <h2>Related Resources</h2>
+    <ul>
+      <li><a href="/tools/reading-speed-calculator.html">Reading Speed Calculator — Calculate Your WPM</a></li>
+      <li><a href="/tools/wpm-to-pages.html">Reading Time Calculator — How Long to Read a Book</a></li>
+      <li><a href="/blog/how-to-read-faster">How to Read Faster: 7 Proven Techniques</a></li>
+      <li><a href="/blog/speed-reading-vs-skimming">Speed Reading vs. Skimming: What's the Difference?</a></li>
+      <li><a href="/blog/adhd-reading-tips">ADHD Reading Tips: Focus and Finish Books</a></li>
+    </ul>
+  </div>
+
+  <div class="tools-nav">
+    <a href="/tools/reading-speed-calculator.html">Reading Speed Calculator</a>
+    <a href="/tools/wpm-to-pages.html">Reading Time Calculator</a>
+    <a href="/tools/wpm-chart.html" class="active">WPM Chart</a>
+  </div>
+</main>
+
+<footer>
+  <a href="/" style="color:var(--text-muted)">WarpReader</a> ·
+  <a href="/test">Speed Test</a> ·
+  <a href="/app.html">App</a> ·
+  <a href="/blog/">Blog</a> ·
+  <a href="/privacy.html">Privacy</a> ·
+  <a href="/terms.html">Terms</a>
+  <br><br>© 2026 Abundance LLC
+</footer>
+
+<script src="/analytics.js" defer></script>
+</body>
+</html>

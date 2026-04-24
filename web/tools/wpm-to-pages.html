@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reading Time Calculator — How Long to Read a Book | WarpReader</title>
+  <meta name="description" content="Calculate how long it takes to read a book at your speed. Enter your WPM and book length to estimate reading time. See how speed reading cuts your time in half.">
+  <link rel="canonical" href="https://warpreader.com/tools/wpm-to-pages.html">
+  <meta name="theme-color" content="#060d1a">
+
+  <meta property="og:title" content="Reading Time Calculator — How Long to Read a Book">
+  <meta property="og:description" content="Enter your WPM and book length to estimate total reading time. See how speed reading saves hours.">
+  <meta property="og:image" content="https://warpreader.com/assets/og-default.png">
+  <meta property="og:url" content="https://warpreader.com/tools/wpm-to-pages.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="WarpReader">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Reading Time Calculator — How Long to Read a Book">
+  <meta name="twitter:description" content="Calculate how long it takes to read any book at your current speed vs. speed reading.">
+  <meta name="twitter:image" content="https://warpreader.com/assets/og-default.png">
+  <meta name="twitter:site" content="@warpreader">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Reading Time Calculator",
+    "url": "https://warpreader.com/tools/wpm-to-pages.html",
+    "applicationCategory": "UtilityApplication",
+    "operatingSystem": "Web",
+    "description": "Calculate how long it takes to read a book based on your WPM and the book's word count or page count.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://warpreader.com" },
+      { "@type": "ListItem", "position": 2, "name": "Tools", "item": "https://warpreader.com/tools/reading-speed-calculator.html" },
+      { "@type": "ListItem", "position": 3, "name": "Reading Time Calculator" }
+    ]
+  }
+  </script>
+
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #060d1a; --bg-card: #0d1f35; --bg-elevated: #132a48; --accent: #38bdf8; --accent-hover: #7dd3fc; --text: #e2e8f0; --text-muted: #94a3b8; --border: #1e3a5f; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; font-size: 17px; }
+    a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 16px 32px; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 100; }
+    .nav-brand { font-size: 1.1rem; font-weight: 800; color: var(--accent); text-decoration: none; }
+    .nav-links { display: flex; gap: 20px; align-items: center; }
+    .nav-links a { color: var(--text-muted); font-size: .9rem; }
+    .nav-cta { background: var(--accent); color: #000; padding: 8px 18px; border-radius: 8px; font-weight: 700; font-size: .9rem; text-decoration: none; }
+    main { max-width: 760px; margin: 0 auto; padding: 48px 24px 80px; }
+    .breadcrumb { font-size: .82rem; color: var(--text-muted); margin-bottom: 24px; }
+    .breadcrumb a { color: var(--text-muted); }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.03em; line-height: 1.2; margin-bottom: 16px; }
+    .subtitle { color: var(--text-muted); font-size: 1.05rem; margin-bottom: 40px; }
+    h2 { font-size: 1.4rem; font-weight: 800; margin: 48px 0 16px; }
+    p { margin-bottom: 18px; }
+    ul, ol { padding-left: 24px; margin-bottom: 18px; }
+    li { margin-bottom: 8px; }
+
+    .calc-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 40px 32px; margin-bottom: 48px; }
+    .calc-row { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+    .calc-field { flex: 1; min-width: 180px; }
+    .calc-field label { display: block; font-size: .88rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+    .calc-field input, .calc-field select { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 16px; }
+    .calc-field input:focus, .calc-field select:focus { outline: none; border-color: var(--accent); }
+    .calc-btn { background: var(--accent); color: #000; font-weight: 700; font-size: 1rem; padding: 14px 32px; border: none; border-radius: 10px; cursor: pointer; width: 100%; transition: background .2s; }
+    .calc-btn:hover { background: var(--accent-hover); }
+
+    .result-card { display: none; background: var(--bg-elevated); border: 1px solid var(--accent); border-radius: 16px; padding: 32px; margin-top: 24px; }
+    .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+    .comparison-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }
+    .comparison-item.highlight { border-color: var(--accent); background: rgba(56,189,248,0.06); }
+    .comparison-item .speed-label { font-size: .82rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+    .comparison-item .time-value { font-size: 1.8rem; font-weight: 800; color: var(--text); }
+    .comparison-item.highlight .time-value { color: var(--accent); }
+    .comparison-item .time-detail { font-size: .85rem; color: var(--text-muted); margin-top: 4px; }
+    .savings { text-align: center; font-size: 1.1rem; font-weight: 600; color: var(--accent); margin: 20px 0; padding: 16px; background: rgba(56,189,248,0.06); border-radius: 10px; }
+
+    .cta-box { background: var(--bg-card); border: 1.5px solid var(--accent); border-radius: 16px; padding: 32px; text-align: center; margin: 40px 0; }
+    .cta-box h3 { font-size: 1.2rem; margin-bottom: 8px; }
+    .cta-box p { color: var(--text-muted); font-size: .95rem; margin-bottom: 16px; }
+    .cta-link { display: inline-block; background: var(--accent); color: #000; font-weight: 700; padding: 12px 28px; border-radius: 10px; text-decoration: none; }
+    .cta-link:hover { background: var(--accent-hover); text-decoration: none; }
+
+    .content-section { margin-top: 48px; }
+    .content-section p, .content-section li { color: var(--text-muted); line-height: 1.75; }
+
+    .book-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    .book-table th, .book-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: .92rem; }
+    .book-table th { color: var(--text-muted); font-weight: 600; font-size: .82rem; text-transform: uppercase; letter-spacing: .04em; }
+    .book-table td:nth-child(3), .book-table td:nth-child(4) { text-align: center; }
+    .book-table .fast { color: var(--accent); font-weight: 600; }
+
+    .tools-nav { display: flex; gap: 12px; flex-wrap: wrap; margin: 40px 0; padding: 20px 0; border-top: 1px solid var(--border); }
+    .tools-nav a { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: .88rem; font-weight: 600; color: var(--text-muted); transition: border-color .2s, color .2s; text-decoration: none; }
+    .tools-nav a:hover { border-color: var(--accent); color: var(--accent); }
+    .tools-nav a.active { border-color: var(--accent); color: var(--accent); }
+
+    footer { text-align: center; padding: 32px 24px; color: var(--text-muted); font-size: .85rem; border-top: 1px solid var(--border); }
+    footer a { color: var(--text-muted); }
+
+    @media (max-width: 600px) { .comparison-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">⚡ WarpReader</a>
+  <div class="nav-links">
+    <a href="/test">Speed Test</a>
+    <a href="/blog/">Blog</a>
+    <a href="/app.html" class="nav-cta">Start Free</a>
+  </div>
+</nav>
+
+<main>
+  <div class="breadcrumb">
+    <a href="/">Home</a> › <a href="/tools/reading-speed-calculator.html">Tools</a> › Reading Time Calculator
+  </div>
+
+  <h1>Reading Time Calculator</h1>
+  <p class="subtitle">How long will it take you to read a book? Enter your reading speed and the book's length to find out — then see how much time speed reading saves.</p>
+
+  <div class="calc-card">
+    <div class="calc-row">
+      <div class="calc-field">
+        <label for="user-wpm">Your reading speed (WPM)</label>
+        <input type="number" id="user-wpm" placeholder="e.g., 250" min="50" value="250">
+      </div>
+      <div class="calc-field">
+        <label for="input-type">Book length in</label>
+        <select id="input-type" onchange="toggleInput()">
+          <option value="words">Words</option>
+          <option value="pages" selected>Pages</option>
+        </select>
+      </div>
+      <div class="calc-field">
+        <label for="book-length" id="length-label">Number of pages</label>
+        <input type="number" id="book-length" placeholder="e.g., 300" min="1">
+      </div>
+    </div>
+    <button class="calc-btn" onclick="calculateTime()">Calculate Reading Time →</button>
+
+    <div class="result-card" id="result">
+      <div class="comparison-grid">
+        <div class="comparison-item">
+          <div class="speed-label">At your speed (<span id="r-your-wpm">250</span> WPM)</div>
+          <div class="time-value" id="r-your-time">—</div>
+          <div class="time-detail" id="r-your-detail"></div>
+        </div>
+        <div class="comparison-item highlight">
+          <div class="speed-label">With WarpReader (<span id="r-fast-wpm">500</span> WPM)</div>
+          <div class="time-value" id="r-fast-time">—</div>
+          <div class="time-detail" id="r-fast-detail"></div>
+        </div>
+      </div>
+      <div class="savings" id="r-savings"></div>
+    </div>
+  </div>
+
+  <div class="cta-box">
+    <h3>Don't know your WPM? Take the free speed test.</h3>
+    <p>Our 60-second test measures your actual reading speed. No signup required.</p>
+    <a href="/test" class="cta-link">Take the Free Speed Test →</a>
+  </div>
+
+  <div class="content-section">
+    <h2>Popular Books: Reading Time at Different Speeds</h2>
+    <table class="book-table">
+      <thead>
+        <tr><th>Book</th><th>Words</th><th>At 250 WPM</th><th>At 500 WPM</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Atomic Habits</td><td>73,000</td><td>4h 52m</td><td class="fast">2h 26m</td></tr>
+        <tr><td>Thinking, Fast and Slow</td><td>140,000</td><td>9h 20m</td><td class="fast">4h 40m</td></tr>
+        <tr><td>The Psychology of Money</td><td>58,000</td><td>3h 52m</td><td class="fast">1h 56m</td></tr>
+        <tr><td>Deep Work</td><td>68,000</td><td>4h 32m</td><td class="fast">2h 16m</td></tr>
+        <tr><td>Sapiens</td><td>115,000</td><td>7h 40m</td><td class="fast">3h 50m</td></tr>
+        <tr><td>The Lean Startup</td><td>65,000</td><td>4h 20m</td><td class="fast">2h 10m</td></tr>
+        <tr><td>Zero to One</td><td>35,000</td><td>2h 20m</td><td class="fast">1h 10m</td></tr>
+      </tbody>
+    </table>
+    <p style="color:var(--text-muted);font-size:.88rem;margin-top:8px">Word counts are approximate. Average page ≈ 250 words.</p>
+
+    <h2>How Speed Reading Saves Time</h2>
+    <p>The average adult reads at 238 WPM. A typical business book has 60,000–80,000 words — that's 4–5.5 hours of reading. With RSVP speed reading training, most users reach 400–600 WPM within 30 days, cutting that time nearly in half.</p>
+    <p>Over a year, if you read just 12 books, the time savings compound to <strong>dozens of hours</strong> returned to your calendar. That's the equivalent of an extra work week — just from reading more efficiently.</p>
+
+    <h2>Train to Read Faster</h2>
+    <p>WarpReader's <a href="/training.html">28-day speed reading course</a> builds your speed progressively with daily 10-minute RSVP sessions. Most users see measurable improvement within the first week. <a href="/app.html">Start training for free →</a></p>
+
+    <h2>Related Tools & Reading</h2>
+    <ul>
+      <li><a href="/tools/reading-speed-calculator.html">Reading Speed Calculator — Find Your WPM</a></li>
+      <li><a href="/tools/wpm-chart.html">Words Per Minute Chart — Speed Levels Explained</a></li>
+      <li><a href="/blog/how-to-read-faster">How to Read Faster: 7 Proven Techniques</a></li>
+      <li><a href="/blog/best-speed-reading-apps-2026">Best Speed Reading Apps Compared (2026)</a></li>
+    </ul>
+  </div>
+
+  <div class="tools-nav">
+    <a href="/tools/reading-speed-calculator.html">Reading Speed Calculator</a>
+    <a href="/tools/wpm-to-pages.html" class="active">Reading Time Calculator</a>
+    <a href="/tools/wpm-chart.html">WPM Chart</a>
+  </div>
+</main>
+
+<footer>
+  <a href="/" style="color:var(--text-muted)">WarpReader</a> ·
+  <a href="/test">Speed Test</a> ·
+  <a href="/app.html">App</a> ·
+  <a href="/blog/">Blog</a> ·
+  <a href="/privacy.html">Privacy</a> ·
+  <a href="/terms.html">Terms</a>
+  <br><br>© 2026 Abundance LLC
+</footer>
+
+<script>
+function toggleInput() {
+  const type = document.getElementById('input-type').value;
+  document.getElementById('length-label').textContent = type === 'pages' ? 'Number of pages' : 'Total words';
+  document.getElementById('book-length').placeholder = type === 'pages' ? 'e.g., 300' : 'e.g., 75000';
+}
+
+function formatTime(minutes) {
+  if (minutes < 60) return Math.round(minutes) + 'm';
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  return h + 'h ' + m + 'm';
+}
+
+function calculateTime() {
+  const wpm = parseFloat(document.getElementById('user-wpm').value);
+  const length = parseFloat(document.getElementById('book-length').value);
+  const type = document.getElementById('input-type').value;
+  if (!wpm || !length || wpm <= 0 || length <= 0) return;
+
+  const totalWords = type === 'pages' ? length * 250 : length;
+  const yourMinutes = totalWords / wpm;
+  const fastWpm = Math.max(wpm * 2, 500);
+  const fastMinutes = totalWords / fastWpm;
+  const savedMinutes = yourMinutes - fastMinutes;
+
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('r-your-wpm').textContent = wpm;
+  document.getElementById('r-fast-wpm').textContent = fastWpm;
+  document.getElementById('r-your-time').textContent = formatTime(yourMinutes);
+  document.getElementById('r-fast-time').textContent = formatTime(fastMinutes);
+  document.getElementById('r-your-detail').textContent = totalWords.toLocaleString() + ' words';
+  document.getElementById('r-fast-detail').textContent = totalWords.toLocaleString() + ' words';
+  document.getElementById('r-savings').innerHTML =
+    '⚡ You\'d save <strong>' + formatTime(savedMinutes) + '</strong> on this book alone with speed reading.';
+
+  document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+</script>
+<script src="/analytics.js" defer></script>
+</body>
+</html>

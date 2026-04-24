@@ -4,7 +4,11 @@
 <script>if(location.hostname==='swiftread.app')location.replace('https://warpreader.com'+location.pathname+location.search+location.hash);</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Warpreader — Read 3× Faster. Miss Nothing.</title>
+<title>WarpReader — Speed Reading App | Read 3x Faster</title>
+<link rel="canonical" href="https://warpreader.com/">
+<meta name="theme-color" content="#060d1a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <meta name="description" content="RSVP speed reading with AI comprehension coaching. Read faster, retain more. Free, web-based, no download required.">
 <!-- Favicon -->
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -19,17 +23,17 @@
 })();
 </script>
 <!-- Open Graph -->
-<meta property="og:title" content="Warpreader — Read 3× Faster. Miss Nothing.">
+<meta property="og:title" content="WarpReader — Speed Reading App | Read 3x Faster">
 <meta property="og:description" content="RSVP speed reading with AI comprehension coaching. Read faster, retain more. Free to start, no download required.">
 <meta property="og:url" content="https://warpreader.com">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://warpreader.com/og-image.png">
-<meta property="og:site_name" content="Warpreader">
+<meta property="og:image" content="https://warpreader.com/assets/og-default.png">
+<meta property="og:site_name" content="WarpReader">
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Warpreader — Read 3× Faster. Miss Nothing.">
+<meta name="twitter:title" content="WarpReader — Speed Reading App | Read 3x Faster">
 <meta name="twitter:description" content="RSVP speed reading with AI comprehension coaching. Read faster, retain more.">
-<meta name="twitter:image" content="https://warpreader.com/og-image.png">
+<meta name="twitter:image" content="https://warpreader.com/assets/og-default.png">
 <meta name="twitter:site" content="@warpreader">
 <!-- ══════════════════════════════════════════════
   ANALYTICS — 2 things to activate:
@@ -87,7 +91,7 @@
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "Warpreader",
-  "applicationCategory": "EducationApplication",
+  "applicationCategory": "ProductivityApplication",
   "operatingSystem": "Web, iOS, Android",
   "url": "https://warpreader.com",
   "description": "Free RSVP speed reading app with AI comprehension coaching. Read PDFs, ePubs, articles, and any text 3× faster.",
@@ -129,6 +133,22 @@
     "Reading history",
     "WPM tracking"
   ]
+}
+</script>
+
+<!-- JSON-LD: WebSite Schema with SearchAction -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "WarpReader",
+  "url": "https://warpreader.com",
+  "description": "RSVP speed reading web app with AI comprehension coaching. Read 3x faster.",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://warpreader.com/blog/?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
 }
 </script>
 
@@ -392,6 +412,9 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
   <div class="logo"><span>⚡</span> Warpreader</div>
   <button class="hamburger" onclick="document.querySelector('.nav-right').classList.toggle('open')" aria-label="Menu">☰</button>
   <div class="nav-right">
+    <a href="/test">Speed Test</a>
+    <a href="/blog/">Blog</a>
+    <a href="/training.html">Training</a>
     <a href="/library.html">Library</a>
     <a href="/app.html?auth=login">Log in</a>
     <button id="theme-btn" onclick="toggleLandingTheme()" title="Toggle theme" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;padding:4px 8px;border-radius:8px;transition:color .2s,background .2s" onmouseover="this.style.background='var(--accent-dim)'" onmouseout="this.style.background='none'">🌙</button>
@@ -712,42 +735,7 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
 </div>
 </section>
 
-<!-- BUILT FOR SECTION -->
-<section style="padding:56px 0 32px;border-top:1px solid var(--border)">
-<div class="container" style="max-width:860px;text-align:center">
-  <p style="font-size:.8rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted);margin-bottom:20px">Works with every format you actually read</p>
-  <div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap">
-    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.85">
-      <span style="font-size:2rem">&#128196;</span>
-      <span style="font-size:.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em">PDF</span>
-    </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.85">
-      <span style="font-size:2rem">&#128218;</span>
-      <span style="font-size:.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em">ePub</span>
-    </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.85">
-      <span style="font-size:2rem">&#128241;</span>
-      <span style="font-size:.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em">Kindle</span>
-    </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.85">
-      <span style="font-size:2rem">&#128279;</span>
-      <span style="font-size:.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em">Articles / URLs</span>
-    </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.85">
-      <span style="font-size:2rem">&#128203;</span>
-      <span style="font-size:.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em">Paste Text</span>
-    </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.85">
-      <span style="font-size:2rem">&#128221;</span>
-      <span style="font-size:.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em">Markdown</span>
-    </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;opacity:.85">
-      <span style="font-size:2rem">&#128214;</span>
-      <span style="font-size:.78rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em">61K Free Books</span>
-    </div>
-  </div>
-</div>
-</section>
+
 
 <!-- COMPARISON -->
 <section>
@@ -863,8 +851,12 @@ footer .container{display:flex;align-items:center;justify-content:space-between;
   <div class="footer-links">
     <a href="#features">Features</a>
     <a href="#pricing">Pricing</a>
-    <a href="privacy.html">Privacy Policy</a>
-    <a href="terms.html">Terms of Service</a>
+    <a href="/blog/">Blog</a>
+    <a href="/training.html">Training</a>
+    <a href="/tools/reading-speed-calculator.html">Tools</a>
+    <a href="/press.html">Press</a>
+    <a href="privacy.html">Privacy</a>
+    <a href="terms.html">Terms</a>
     <a href="mailto:support@warpreader.com">Contact</a>
   </div>
 </div>

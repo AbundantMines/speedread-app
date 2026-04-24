@@ -1,6 +1,5 @@
 User-agent: *
 Allow: /
-Sitemap: https://warpreader.com/sitemap.xml
-
-# Block crawling of API endpoints
 Disallow: /api/
+
+Sitemap: https://warpreader.com/sitemap.xml

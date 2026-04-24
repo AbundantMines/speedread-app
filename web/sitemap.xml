@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://warpreader.com/</loc>
-    <lastmod>2026-04-07</lastmod>
+    <lastmod>2026-04-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -20,9 +20,99 @@
   </url>
   <url>
     <loc>https://warpreader.com/blog/</loc>
-    <lastmod>2026-04-07</lastmod>
+    <lastmod>2026-04-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://warpreader.com/blog/speed-reading-test-online</loc>
+    <lastmod>2026-04-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://warpreader.com/blog/rsvp-speed-reading-app</loc>
+    <lastmod>2026-04-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://warpreader.com/blog/read-pdf-faster</loc>
+    <lastmod>2026-04-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://warpreader.com/blog/chrome-speed-reading-extension</loc>
+    <lastmod>2026-04-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://warpreader.com/blog/cant-focus-while-reading</loc>
+    <lastmod>2026-04-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://warpreader.com/blog/how-to-stop-subvocalization</loc>
+    <lastmod>2026-04-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://warpreader.com/blog/how-to-read-more-books</loc>
+    <lastmod>2026-04-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://warpreader.com/blog/reading-speed-by-age</loc>
+    <lastmod>2026-04-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://warpreader.com/blog/adhd-speed-reading-app</loc>
+    <lastmod>2026-04-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://warpreader.com/blog/dyslexia-speed-reading</loc>
+    <lastmod>2026-04-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://warpreader.com/blog/spreeder-alternative</loc>
+    <lastmod>2026-04-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://warpreader.com/blog/bionic-reading-vs-rsvp</loc>
+    <lastmod>2026-04-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://warpreader.com/blog/speed-reading-for-students</loc>
+    <lastmod>2026-04-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://warpreader.com/blog/how-many-words-per-minute-should-i-read</loc>
+    <lastmod>2026-04-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://warpreader.com/blog/speed-reading-myths</loc>
+    <lastmod>2026-04-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://warpreader.com/blog/what-is-rsvp-reading</loc>

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reading Speed Calculator — Calculate Your WPM | WarpReader</title>
+  <meta name="description" content="Calculate your reading speed in words per minute (WPM). Enter how many words you read and how long it took — get your WPM, percentile ranking, and tips to read faster.">
+  <link rel="canonical" href="https://warpreader.com/tools/reading-speed-calculator.html">
+  <meta name="theme-color" content="#060d1a">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Reading Speed Calculator — Calculate Your WPM">
+  <meta property="og:description" content="Enter word count and time to calculate your reading speed in WPM. See your percentile ranking and get personalized tips.">
+  <meta property="og:image" content="https://warpreader.com/assets/og-default.png">
+  <meta property="og:url" content="https://warpreader.com/tools/reading-speed-calculator.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="WarpReader">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Reading Speed Calculator — Calculate Your WPM">
+  <meta name="twitter:description" content="Calculate your reading speed in words per minute. See how you rank.">
+  <meta name="twitter:image" content="https://warpreader.com/assets/og-default.png">
+  <meta name="twitter:site" content="@warpreader">
+
+  <!-- JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Reading Speed Calculator",
+    "url": "https://warpreader.com/tools/reading-speed-calculator.html",
+    "applicationCategory": "UtilityApplication",
+    "operatingSystem": "Web",
+    "description": "Calculate your reading speed in words per minute (WPM) and see your percentile ranking.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://warpreader.com" },
+      { "@type": "ListItem", "position": 2, "name": "Tools", "item": "https://warpreader.com/tools/reading-speed-calculator.html" },
+      { "@type": "ListItem", "position": 3, "name": "Reading Speed Calculator" }
+    ]
+  }
+  </script>
+
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #060d1a; --bg-card: #0d1f35; --bg-elevated: #132a48; --accent: #38bdf8; --accent-hover: #7dd3fc; --text: #e2e8f0; --text-muted: #94a3b8; --border: #1e3a5f; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; font-size: 17px; }
+    a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 16px 32px; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 100; }
+    .nav-brand { font-size: 1.1rem; font-weight: 800; color: var(--accent); text-decoration: none; }
+    .nav-links { display: flex; gap: 20px; align-items: center; }
+    .nav-links a { color: var(--text-muted); font-size: .9rem; }
+    .nav-cta { background: var(--accent); color: #000; padding: 8px 18px; border-radius: 8px; font-weight: 700; font-size: .9rem; text-decoration: none; }
+    main { max-width: 760px; margin: 0 auto; padding: 48px 24px 80px; }
+    .breadcrumb { font-size: .82rem; color: var(--text-muted); margin-bottom: 24px; }
+    .breadcrumb a { color: var(--text-muted); }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.03em; line-height: 1.2; margin-bottom: 16px; }
+    .subtitle { color: var(--text-muted); font-size: 1.05rem; margin-bottom: 40px; }
+    h2 { font-size: 1.4rem; font-weight: 800; margin: 48px 0 16px; }
+    h3 { font-size: 1.1rem; font-weight: 700; margin: 28px 0 10px; }
+    p { margin-bottom: 18px; }
+    ul, ol { padding-left: 24px; margin-bottom: 18px; }
+    li { margin-bottom: 8px; }
+
+    .calc-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 40px 32px; margin-bottom: 48px; }
+    .calc-row { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+    .calc-field { flex: 1; min-width: 200px; }
+    .calc-field label { display: block; font-size: .88rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+    .calc-field input, .calc-field select { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 16px; }
+    .calc-field input:focus { outline: none; border-color: var(--accent); }
+    .calc-btn { background: var(--accent); color: #000; font-weight: 700; font-size: 1rem; padding: 14px 32px; border: none; border-radius: 10px; cursor: pointer; width: 100%; transition: background .2s; }
+    .calc-btn:hover { background: var(--accent-hover); }
+
+    .result-card { display: none; background: var(--bg-elevated); border: 1px solid var(--accent); border-radius: 16px; padding: 32px; text-align: center; margin-top: 24px; }
+    .result-wpm { font-size: 3.5rem; font-weight: 800; color: var(--accent); line-height: 1; }
+    .result-label { font-size: 1rem; color: var(--text-muted); margin: 8px 0; }
+    .result-percentile { font-size: 1.15rem; font-weight: 600; margin: 16px 0; }
+    .result-bar { height: 12px; border-radius: 6px; background: var(--bg); overflow: hidden; margin: 16px 0; }
+    .result-bar-fill { height: 100%; border-radius: 6px; transition: width .6s ease; }
+    .result-bar-labels { display: flex; justify-content: space-between; font-size: .75rem; color: var(--text-muted); margin-bottom: 20px; }
+    .result-tips { text-align: left; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .result-tips h3 { font-size: 1rem; margin-bottom: 12px; }
+    .result-tips li { font-size: .95rem; color: var(--text-muted); }
+
+    .cta-box { background: var(--bg-card); border: 1.5px solid var(--accent); border-radius: 16px; padding: 32px; text-align: center; margin: 40px 0; }
+    .cta-box h3 { font-size: 1.2rem; margin-bottom: 8px; }
+    .cta-box p { color: var(--text-muted); font-size: .95rem; margin-bottom: 16px; }
+    .cta-link { display: inline-block; background: var(--accent); color: #000; font-weight: 700; padding: 12px 28px; border-radius: 10px; text-decoration: none; }
+    .cta-link:hover { background: var(--accent-hover); text-decoration: none; }
+
+    .content-section { margin-top: 48px; }
+    .content-section p, .content-section li { color: var(--text-muted); line-height: 1.75; }
+
+    .tools-nav { display: flex; gap: 12px; flex-wrap: wrap; margin: 40px 0; padding: 20px 0; border-top: 1px solid var(--border); }
+    .tools-nav a { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: .88rem; font-weight: 600; color: var(--text-muted); transition: border-color .2s, color .2s; text-decoration: none; }
+    .tools-nav a:hover { border-color: var(--accent); color: var(--accent); }
+    .tools-nav a.active { border-color: var(--accent); color: var(--accent); }
+
+    footer { text-align: center; padding: 32px 24px; color: var(--text-muted); font-size: .85rem; border-top: 1px solid var(--border); }
+    footer a { color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">⚡ WarpReader</a>
+  <div class="nav-links">
+    <a href="/test">Speed Test</a>
+    <a href="/blog/">Blog</a>
+    <a href="/app.html" class="nav-cta">Start Free</a>
+  </div>
+</nav>
+
+<main>
+  <div class="breadcrumb">
+    <a href="/">Home</a> › <a href="/tools/reading-speed-calculator.html">Tools</a> › Reading Speed Calculator
+  </div>
+
+  <h1>Reading Speed Calculator</h1>
+  <p class="subtitle">Calculate your words per minute (WPM), see your percentile ranking, and get personalized tips to read faster.</p>
+
+  <div class="calc-card">
+    <div class="calc-row">
+      <div class="calc-field">
+        <label for="word-count">Words read</label>
+        <input type="number" id="word-count" placeholder="e.g., 3000" min="1">
+      </div>
+      <div class="calc-field">
+        <label for="time-minutes">Time (minutes)</label>
+        <input type="number" id="time-minutes" placeholder="e.g., 12" min="0" step="0.1">
+      </div>
+    </div>
+    <button class="calc-btn" onclick="calculateWPM()">Calculate My WPM →</button>
+
+    <div class="result-card" id="result">
+      <div class="result-wpm" id="result-wpm">—</div>
+      <div class="result-label">words per minute</div>
+      <div class="result-percentile" id="result-percentile"></div>
+      <div class="result-bar"><div class="result-bar-fill" id="result-bar"></div></div>
+      <div class="result-bar-labels"><span>100 WPM</span><span>238 avg</span><span>500+</span></div>
+
+      <div class="result-tips" id="result-tips"></div>
+    </div>
+  </div>
+
+  <div class="cta-box">
+    <h3>Want a more accurate reading speed test?</h3>
+    <p>Our free 60-second reading speed test measures your WPM with a real passage — not just math. Get your actual speed, comprehension check, and a personalized training plan.</p>
+    <a href="/test" class="cta-link">Take the Free Speed Test →</a>
+  </div>
+
+  <div class="content-section">
+    <h2>How the Reading Speed Calculator Works</h2>
+    <p>This calculator divides the number of words you read by the time it took you, giving your reading speed in <strong>words per minute (WPM)</strong>. WPM is the universal measure of reading speed used by educators, researchers, and speed reading programs.</p>
+    <p>For the most accurate result, time yourself reading a full article or book chapter — not just a paragraph. Longer samples reduce the impact of start/stop delays.</p>
+
+    <h2>What's a Good Reading Speed?</h2>
+    <p>Reading speeds vary by age, material difficulty, and practice. Here's how adults typically break down:</p>
+    <ul>
+      <li><strong>Below 150 WPM:</strong> Below average — may indicate reading difficulties or very dense material</li>
+      <li><strong>200–250 WPM:</strong> Average adult reading speed (the U.S. national average is 238 WPM)</li>
+      <li><strong>300–400 WPM:</strong> Above average — typical of college-educated readers and avid readers</li>
+      <li><strong>400–700 WPM:</strong> Speed reader territory — achievable with RSVP training and practice</li>
+      <li><strong>700+ WPM:</strong> Elite — top 1% of readers, usually with extensive speed reading experience</li>
+    </ul>
+
+    <h2>How to Improve Your Reading Speed</h2>
+    <ol>
+      <li><strong>Eliminate subvocalization</strong> — Stop "saying" words in your head. This caps most readers at 250 WPM.</li>
+      <li><strong>Reduce eye fixations</strong> — Train your eyes to take in groups of words instead of individual words.</li>
+      <li><strong>Use RSVP</strong> — Rapid Serial Visual Presentation removes all eye movement, letting your brain focus purely on comprehension. <a href="/blog/what-is-rsvp-reading">Learn more about RSVP →</a></li>
+      <li><strong>Practice daily</strong> — Even 10 minutes/day builds speed. WarpReader's <a href="/training.html">28-day training course</a> is designed for this.</li>
+      <li><strong>Track your progress</strong> — What gets measured gets improved. Use the <a href="/test">free speed test</a> weekly to benchmark.</li>
+    </ol>
+
+    <h2>Reading Speed by Context</h2>
+    <p>Your WPM will vary by what you're reading:</p>
+    <ul>
+      <li><strong>Technical/legal documents:</strong> 150–200 WPM (dense, requires re-reading)</li>
+      <li><strong>Non-fiction books:</strong> 200–300 WPM (moderate density)</li>
+      <li><strong>Fiction/narrative:</strong> 250–350 WPM (flowing, less re-reading)</li>
+      <li><strong>Email/social media:</strong> 300–400 WPM (familiar formats, skim-friendly)</li>
+    </ul>
+
+    <h2>Related Reading</h2>
+    <ul>
+      <li><a href="/blog/how-to-read-faster">How to Read Faster: 7 Proven Speed Reading Techniques</a></li>
+      <li><a href="/blog/what-is-rsvp-reading">What Is RSVP Reading? The Complete Guide</a></li>
+      <li><a href="/blog/speed-reading-vs-skimming">Speed Reading vs. Skimming: What's the Difference?</a></li>
+      <li><a href="/tools/wpm-to-pages.html">Reading Time Calculator — How Long Will a Book Take?</a></li>
+      <li><a href="/tools/wpm-chart.html">Words Per Minute Chart — Reading Speed by Level</a></li>
+    </ul>
+  </div>
+
+  <div class="tools-nav">
+    <a href="/tools/reading-speed-calculator.html" class="active">Reading Speed Calculator</a>
+    <a href="/tools/wpm-to-pages.html">Reading Time Calculator</a>
+    <a href="/tools/wpm-chart.html">WPM Chart</a>
+  </div>
+</main>
+
+<footer>
+  <a href="/" style="color:var(--text-muted)">WarpReader</a> ·
+  <a href="/test">Speed Test</a> ·
+  <a href="/app.html">App</a> ·
+  <a href="/blog/">Blog</a> ·
+  <a href="/privacy.html">Privacy</a> ·
+  <a href="/terms.html">Terms</a>
+  <br><br>© 2026 Abundance LLC
+</footer>
+
+<script>
+function calculateWPM() {
+  const words = parseFloat(document.getElementById('word-count').value);
+  const minutes = parseFloat(document.getElementById('time-minutes').value);
+  if (!words || !minutes || words <= 0 || minutes <= 0) return;
+
+  const wpm = Math.round(words / minutes);
+  const result = document.getElementById('result');
+  result.style.display = 'block';
+  document.getElementById('result-wpm').textContent = wpm;
+
+  // Percentile (approximate based on research)
+  let percentile, category;
+  if (wpm < 150) { percentile = 15; category = 'below average'; }
+  else if (wpm < 200) { percentile = 30; category = 'slightly below average'; }
+  else if (wpm < 250) { percentile = 50; category = 'average'; }
+  else if (wpm < 300) { percentile = 65; category = 'above average'; }
+  else if (wpm < 400) { percentile = 80; category = 'well above average'; }
+  else if (wpm < 500) { percentile = 90; category = 'speed reader'; }
+  else if (wpm < 700) { percentile = 96; category = 'advanced speed reader'; }
+  else { percentile = 99; category = 'elite'; }
+
+  document.getElementById('result-percentile').innerHTML =
+    'You read <strong>' + category + '</strong> — faster than ' + percentile + '% of adults.';
+
+  const pct = Math.min(100, Math.max(5, (wpm / 600) * 100));
+  const bar = document.getElementById('result-bar');
+  bar.style.width = pct + '%';
+  const h = Math.round(120 * (Math.min(wpm, 500) / 500));
+  bar.style.background = 'hsl(' + h + ',70%,50%)';
+
+  // Tips based on speed
+  let tips = '<h3>Tips to improve:</h3><ul>';
+  if (wpm < 250) {
+    tips += '<li>You\'re reading at an average pace. Most people can double their speed with training.</li>';
+    tips += '<li>Try RSVP reading — it removes the eye movements that slow you down. <a href="/blog/what-is-rsvp-reading">Learn how →</a></li>';
+    tips += '<li>Start WarpReader\'s <a href="/training.html">free 28-day training course</a> to build speed gradually.</li>';
+  } else if (wpm < 400) {
+    tips += '<li>You\'re above average! With focused practice, 500+ WPM is very achievable.</li>';
+    tips += '<li>Focus on reducing subvocalization — the inner voice that caps your speed.</li>';
+    tips += '<li>Try interval training: alternate between comfortable speed and 20% faster in <a href="/app.html">WarpReader</a>.</li>';
+  } else {
+    tips += '<li>You\'re already fast! Focus on maintaining comprehension as you push higher.</li>';
+    tips += '<li>Use AI comprehension quizzes in <a href="/app.html">WarpReader Pro</a> to verify retention at speed.</li>';
+    tips += '<li>Try reading more complex material at speed to stretch your limits.</li>';
+  }
+  tips += '</ul>';
+  document.getElementById('result-tips').innerHTML = tips;
+
+  result.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+</script>
+<script src="/analytics.js" defer></script>
+</body>
+</html>
